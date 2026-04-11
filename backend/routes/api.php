@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BodyRecordController;
 use App\Http\Controllers\ExerciseController;
 use App\Http\Controllers\WorkoutLogController;
 use App\Http\Controllers\WorkoutTemplateController;
@@ -35,9 +36,15 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
     Route::delete('/workout-logs/{workoutLog}/sets/{set}',     [WorkoutLogController::class, 'deleteSet']);
 
     // 템플릿
-    Route::get('/templates',                  [WorkoutTemplateController::class, 'index']);
-    Route::post('/templates',                 [WorkoutTemplateController::class, 'store']);
+    Route::get('/templates',                      [WorkoutTemplateController::class, 'index']);
+    Route::post('/templates',                     [WorkoutTemplateController::class, 'store']);
     Route::get('/templates/{workoutTemplate}',    [WorkoutTemplateController::class, 'show']);
     Route::patch('/templates/{workoutTemplate}',  [WorkoutTemplateController::class, 'update']);
     Route::delete('/templates/{workoutTemplate}', [WorkoutTemplateController::class, 'destroy']);
+
+    // 신체 기록
+    Route::get('/body-records',               [BodyRecordController::class, 'index']);
+    Route::post('/body-records',              [BodyRecordController::class, 'store']);
+    Route::patch('/body-records/{bodyRecord}', [BodyRecordController::class, 'update']);
+    Route::delete('/body-records/{bodyRecord}', [BodyRecordController::class, 'destroy']);
 });
