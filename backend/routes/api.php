@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\WorkoutLogController;
 use Illuminate\Support\Facades\Route;
 
 // 인증 불필요
@@ -16,7 +17,19 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
     Route::get('/me',      [AuthController::class, 'me']);
 
     // 운동 종목
-    Route::get('/exercises',          [ExerciseController::class, 'index']);
-    Route::post('/exercises',         [ExerciseController::class, 'store']);
+    Route::get('/exercises',               [ExerciseController::class, 'index']);
+    Route::post('/exercises',              [ExerciseController::class, 'store']);
     Route::delete('/exercises/{exercise}', [ExerciseController::class, 'destroy']);
+
+    // 운동 일지
+    Route::get('/workout-logs/calendar',               [WorkoutLogController::class, 'calendar']);
+    Route::get('/workout-logs/{date}',                 [WorkoutLogController::class, 'show']);
+    Route::post('/workout-logs',                       [WorkoutLogController::class, 'store']);
+    Route::patch('/workout-logs/{workoutLog}',         [WorkoutLogController::class, 'update']);
+    Route::delete('/workout-logs/{workoutLog}',        [WorkoutLogController::class, 'destroy']);
+
+    // 세트
+    Route::post('/workout-logs/{workoutLog}/sets',              [WorkoutLogController::class, 'addSet']);
+    Route::patch('/workout-logs/{workoutLog}/sets/{set}',       [WorkoutLogController::class, 'updateSet']);
+    Route::delete('/workout-logs/{workoutLog}/sets/{set}',      [WorkoutLogController::class, 'deleteSet']);
 });
