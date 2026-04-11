@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('template_id')->constrained('workout_templates')->onDelete('cascade');
             $table->foreignId('exercise_id')->constrained()->onDelete('cascade');
-            $table->unsignedTinyInteger('order'); // 운동 순서
+            $table->unsignedTinyInteger('sort_order'); // 운동 순서
             $table->timestamps();
         });
     }
