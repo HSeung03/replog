@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BodyRecordController;
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\OneRmController;
 use App\Http\Controllers\WorkoutLogController;
 use App\Http\Controllers\WorkoutTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -43,8 +44,11 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
     Route::delete('/templates/{workoutTemplate}', [WorkoutTemplateController::class, 'destroy']);
 
     // 신체 기록
-    Route::get('/body-records',               [BodyRecordController::class, 'index']);
-    Route::post('/body-records',              [BodyRecordController::class, 'store']);
+    Route::get('/body-records',                [BodyRecordController::class, 'index']);
+    Route::post('/body-records',               [BodyRecordController::class, 'store']);
     Route::patch('/body-records/{bodyRecord}', [BodyRecordController::class, 'update']);
     Route::delete('/body-records/{bodyRecord}', [BodyRecordController::class, 'destroy']);
+
+    // 1RM 챌린지
+    Route::get('/one-rm', [OneRmController::class, 'index']);
 });
