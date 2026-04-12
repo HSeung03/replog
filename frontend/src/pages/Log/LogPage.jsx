@@ -7,8 +7,9 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
 import ViewListIcon from '@mui/icons-material/ViewList'
-import { getLog, createLog, updateLog, addSet, deleteSet } from '../../api/workoutLogs'
+import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../../api/workoutLogs'
 import { getExercises } from '../../api/exercises'
 import { getTemplates } from '../../api/templates'
 
@@ -28,6 +29,14 @@ export default function LogPage() {
   const [open, setOpen] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState('')
   const [setForm, setSetForm] = useState({ reps: '', weight: '' })
+
+  // 세트 수정 다이얼로그
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingSet, setEditingSet] = useState(null)
+  const [editForm, setEditForm] = useState({ reps: '', weight: '' })
+
+  // 일지 삭제 확인 다이얼로그
+  const [deleteLogOpen, setDeleteLogOpen] = useState(false)
 
   // 템플릿 선택 다이얼로그
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -92,6 +101,30 @@ export default function LogPage() {
     fetchLog()
   }
 
+  const handleOpenEditSet = (set) => {
+    setEditingSet(set)
+    setEditForm({ reps: String(set.reps), weight: String(set.weight) })
+    setEditOpen(true)
+  }
+
+  const handleUpdateSet = async () => {
+    await updateSet(log.id, editingSet.id, {
+      reps: Number(editForm.reps),
+      weight: Number(editForm.weight),
+    })
+    setEditOpen(false)
+    setEditingSet(null)
+    fetchLog()
+  }
+
+  const handleDeleteLog = async () => {
+    await deleteLog(log.id)
+    setLog(null)
+    setMemo('')
+    setPendingExercises([])
+    setDeleteLogOpen(false)
+  }
+
   const handleOpenDialog = (exerciseId) => {
     setSelectedExercise(exerciseId || '')
 
@@ -140,7 +173,19 @@ export default function LogPage() {
 
   return (
     <Box p={2}>
-      <Typography variant="h6" fontWeight="bold" mb={2}>{date}</Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h6" fontWeight="bold">{date}</Typography>
+        {log && (
+          <Button
+            size="small"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => setDeleteLogOpen(true)}
+          >
+            일지 삭제
+          </Button>
+        )}
+      </Box>
 
       {/* 메모 */}
       <Box display="flex" gap={1} mb={2}>
@@ -187,9 +232,14 @@ export default function LogPage() {
                 {set.set_number}세트
               </Typography>
               <Typography variant="body2">{set.weight}kg × {set.reps}회</Typography>
-              <IconButton size="small" onClick={() => handleDeleteSet(set.id)}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+              <Box>
+                <IconButton size="small" onClick={() => handleOpenEditSet(set)}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+                <IconButton size="small" onClick={() => handleDeleteSet(set.id)}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Box>
             </Box>
           ))}
         </Paper>
@@ -259,6 +309,56 @@ export default function LogPage() {
             disabled={!selectedExercise || !setForm.reps || !setForm.weight}
           >
             추가
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 세트 수정 다이얼로그 */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>{editingSet?.set_number}세트 수정</DialogTitle>
+        <DialogContent>
+          <Box display="flex" flexDirection="column" gap={2} mt={1}>
+            <TextField
+              label="무게 (kg)"
+              type="number"
+              value={editForm.weight}
+              onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
+              fullWidth
+            />
+            <TextField
+              label="횟수"
+              type="number"
+              value={editForm.reps}
+              onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>취소</Button>
+          <Button
+            variant="contained"
+            onClick={handleUpdateSet}
+            disabled={!editForm.reps || !editForm.weight}
+          >
+            저장
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 일지 전체 삭제 확인 다이얼로그 */}
+      <Dialog open={deleteLogOpen} onClose={() => setDeleteLogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>일지 삭제</DialogTitle>
+        <DialogContent>
+          <Typography>{date} 일지를 전체 삭제할까요?</Typography>
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            모든 세트 기록이 삭제되며 복구할 수 없습니다.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteLogOpen(false)}>취소</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteLog}>
+            삭제
           </Button>
         </DialogActions>
       </Dialog>
