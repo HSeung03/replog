@@ -11,7 +11,7 @@ class WorkoutTemplate extends Model
     // 이 템플릿에 포함된 종목들 (순서 포함)
     public function exercises()
     {
-        return $this->belongsToMany(Exercise::class, 'template_exercises')
+        return $this->belongsToMany(Exercise::class, 'template_exercises', 'template_id', 'exercise_id')
                     ->withPivot('sort_order')
                     ->orderBy('template_exercises.sort_order')
                     ->withTimestamps();

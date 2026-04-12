@@ -17,7 +17,7 @@ class Exercise extends Model
     // 이 종목이 포함된 템플릿들
     public function templates()
     {
-        return $this->belongsToMany(WorkoutTemplate::class, 'template_exercises')
+        return $this->belongsToMany(WorkoutTemplate::class, 'template_exercises', 'exercise_id', 'template_id')
                     ->withPivot('sort_order')
                     ->withTimestamps();
     }
