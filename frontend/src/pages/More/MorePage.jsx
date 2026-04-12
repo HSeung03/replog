@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Box, Typography, List, ListItemButton, ListItemIcon, ListItemText, Divider, Paper } from '@mui/material'
 import ViewListIcon from '@mui/icons-material/ViewList'
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../../contexts/AuthContext'
 import { logout } from '../../api/auth'
@@ -29,11 +28,6 @@ export default function MorePage() {
           <ListItemButton onClick={() => navigate('/templates')}>
             <ListItemIcon><ViewListIcon /></ListItemIcon>
             <ListItemText primary="템플릿 관리" secondary="자주 쓰는 루틴 저장" />
-          </ListItemButton>
-          <Divider />
-          <ListItemButton onClick={() => navigate('/challenge')}>
-            <ListItemIcon><EmojiEventsIcon /></ListItemIcon>
-            <ListItemText primary="1RM 챌린지" secondary="벤치 · 스쿼트 · 데드리프트" />
           </ListItemButton>
           <Divider />
           <ListItemButton onClick={handleLogout}>

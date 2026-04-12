@@ -65,6 +65,11 @@ export default function ExercisesPage() {
       </Box>
 
       {/* 종목 목록 */}
+      {filtered.length === 0 && (
+        <Typography color="text.secondary" textAlign="center" mt={5}>
+          {selectedCategory === '전체' ? '등록된 종목이 없습니다.' : `${selectedCategory} 종목이 없습니다.`}
+        </Typography>
+      )}
       <List disablePadding>
         {filtered.map((ex, idx) => (
           <Box key={ex.id}>

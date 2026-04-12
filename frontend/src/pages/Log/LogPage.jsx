@@ -223,6 +223,13 @@ export default function LogPage() {
         </Button>
       )}
 
+      {/* 빈 상태 */}
+      {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
+        <Typography color="text.secondary" textAlign="center" mt={5} mb={3}>
+          아직 기록된 운동이 없습니다.
+        </Typography>
+      )}
+
       {/* 세트 있는 종목 */}
       {Object.entries(grouped).map(([name, sets]) => (
         <Paper key={name} sx={{ p: 2, mb: 2 }}>

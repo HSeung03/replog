@@ -125,6 +125,11 @@ export default function BodyPage() {
       {/* 기록 목록 탭 */}
       {tab === 1 && (
         <List disablePadding>
+          {records.length === 0 && (
+            <Typography color="text.secondary" textAlign="center" mt={5}>
+              기록된 신체 데이터가 없습니다.
+            </Typography>
+          )}
           {records.slice().reverse().map((record, idx) => (
             <Box key={record.id}>
               <ListItem
