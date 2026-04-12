@@ -84,7 +84,7 @@ export default function ExercisesPage() {
                 secondary={
                   <Box component="span" display="flex" alignItems="center" gap={1}>
                     <Chip label={ex.category} size="small" variant="outlined" />
-                    {ex.is_default && <Chip label="기본" size="small" color="info" variant="outlined" />}
+                    {!!ex.is_default && <Chip label="기본" size="small" color="info" variant="outlined" />}
                   </Box>
                 }
               />

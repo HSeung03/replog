@@ -94,6 +94,19 @@ export default function LogPage() {
 
   const handleOpenDialog = (exerciseId) => {
     setSelectedExercise(exerciseId || '')
+
+    // 이전 세트 값 자동 복사
+    if (exerciseId && log?.sets) {
+      const prevSets = log.sets
+        .filter((s) => s.exercise_id === exerciseId)
+        .sort((a, b) => b.set_number - a.set_number)
+      if (prevSets.length > 0) {
+        setSetForm({ reps: String(prevSets[0].reps), weight: String(prevSets[0].weight) })
+        setOpen(true)
+        return
+      }
+    }
+
     setSetForm({ reps: '', weight: '' })
     setOpen(true)
   }
