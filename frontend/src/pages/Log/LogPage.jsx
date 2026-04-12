@@ -155,6 +155,13 @@ export default function LogPage() {
     setTemplateOpen(false)
   }
 
+  // Brzycki 1RM 공식
+  const calc1RM = (weight, reps) => {
+    if (reps <= 0 || reps >= 37) return null
+    if (reps === 1) return weight
+    return Math.round((weight * 36) / (37 - reps) * 10) / 10
+  }
+
   // 종목별 세트 그룹핑
   const grouped = log?.sets?.reduce((acc, set) => {
     const name = set.exercise?.name || '알 수 없음'
@@ -226,22 +233,32 @@ export default function LogPage() {
             </Button>
           </Box>
           <Divider sx={{ mb: 1 }} />
-          {sets.sort((a, b) => a.set_number - b.set_number).map((set) => (
-            <Box key={set.id} display="flex" alignItems="center" justifyContent="space-between" py={0.5}>
-              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 50 }}>
-                {set.set_number}세트
-              </Typography>
-              <Typography variant="body2">{set.weight}kg × {set.reps}회</Typography>
-              <Box>
-                <IconButton size="small" onClick={() => handleOpenEditSet(set)}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton size="small" onClick={() => handleDeleteSet(set.id)}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
+          {sets.sort((a, b) => a.set_number - b.set_number).map((set) => {
+            const orm = calc1RM(set.weight, set.reps)
+            return (
+              <Box key={set.id} display="flex" alignItems="center" justifyContent="space-between" py={0.5}>
+                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 50 }}>
+                  {set.set_number}세트
+                </Typography>
+                <Box>
+                  <Typography variant="body2" component="span">{set.weight}kg × {set.reps}회</Typography>
+                  {orm && (
+                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                      1RM ~{orm}kg
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <IconButton size="small" onClick={() => handleOpenEditSet(set)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleDeleteSet(set.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               </Box>
-            </Box>
-          ))}
+            )
+          })}
         </Paper>
       ))}
 
