@@ -5,6 +5,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { getCalendar } from '../../api/workoutLogs'
+import './calendar.css'
 
 export default function CalendarPage() {
   const navigate = useNavigate()
@@ -17,10 +18,9 @@ export default function CalendarPage() {
       const res = await getCalendar(year, month)
       const dates = res.data
       setEvents(dates.map((date) => ({
-        title: '✓',
+        title: '',
         date,
-        display: 'background',
-        backgroundColor: '#90caf9',
+        display: 'list-item',
       })))
     } catch {
       // 기록 없으면 빈 캘린더

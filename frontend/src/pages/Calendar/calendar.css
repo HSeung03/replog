@@ -1,0 +1,141 @@
+/* FullCalendar 전체 래퍼 */
+.fc {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.06);
+  padding: 8px;
+}
+
+/* 헤더 툴바 */
+.fc .fc-toolbar {
+  padding: 8px 4px;
+  margin-bottom: 4px;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+/* 이전/다음 버튼 */
+.fc .fc-button {
+  background: rgba(37, 99, 235, 0.08) !important;
+  border: 1px solid rgba(147, 197, 253, 0.4) !important;
+  border-radius: 10px !important;
+  color: #2563EB !important;
+  box-shadow: none !important;
+  padding: 4px 10px !important;
+  font-size: 0.85rem !important;
+}
+
+.fc .fc-button:hover {
+  background: rgba(37, 99, 235, 0.15) !important;
+}
+
+.fc .fc-button:focus {
+  box-shadow: none !important;
+}
+
+/* 요일 헤더 */
+.fc .fc-col-header-cell {
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+}
+
+.fc .fc-col-header-cell-cushion {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94A3B8;
+  text-decoration: none;
+}
+
+/* 날짜 셀 */
+.fc .fc-daygrid-day {
+  border: none !important;
+  background: transparent;
+}
+
+.fc .fc-daygrid-day-frame {
+  min-height: 44px;
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #1E293B;
+  text-decoration: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 3px auto 0;
+  float: none !important;
+  padding: 0 !important;
+}
+
+/* 오늘 날짜 */
+.fc .fc-day-today {
+  background: transparent !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: #2563EB;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* 일요일/토요일 색상 */
+.fc .fc-day-sun .fc-daygrid-day-number {
+  color: #EF4444;
+}
+
+.fc .fc-day-sat .fc-daygrid-day-number {
+  color: #2563EB;
+}
+
+/* 그리드 선 제거 */
+.fc .fc-scrollgrid,
+.fc .fc-scrollgrid-section > td,
+.fc table {
+  border: none !important;
+}
+
+.fc td, .fc th {
+  border: none !important;
+}
+
+/* dot 이벤트 */
+.fc .fc-daygrid-event {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.fc .fc-daygrid-dot-event {
+  background: transparent !important;
+}
+
+.fc .fc-daygrid-event-dot {
+  border-color: #2563EB !important;
+  border-width: 4px !important;
+}
+
+/* 운동한 날 dot */
+.fc .fc-daygrid-day-events {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+/* 이전/다음 달 날짜 흐리게 */
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: #CBD5E1;
+}
