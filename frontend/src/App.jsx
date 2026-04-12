@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { CircularProgress, Box } from '@mui/material'
+import Layout from './components/Layout'
 
 import LoginPage from './pages/Auth/LoginPage'
 import RegisterPage from './pages/Auth/RegisterPage'
@@ -45,12 +46,12 @@ function AppRoutes() {
       <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
       <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
 
-      <Route path="/" element={<PrivateRoute><CalendarPage /></PrivateRoute>} />
-      <Route path="/log/:date" element={<PrivateRoute><LogPage /></PrivateRoute>} />
-      <Route path="/exercises" element={<PrivateRoute><ExercisesPage /></PrivateRoute>} />
-      <Route path="/templates" element={<PrivateRoute><TemplatesPage /></PrivateRoute>} />
-      <Route path="/body" element={<PrivateRoute><BodyPage /></PrivateRoute>} />
-      <Route path="/challenge" element={<PrivateRoute><ChallengePage /></PrivateRoute>} />
+      <Route path="/" element={<PrivateRoute><Layout><CalendarPage /></Layout></PrivateRoute>} />
+      <Route path="/log/:date" element={<PrivateRoute><Layout><LogPage /></Layout></PrivateRoute>} />
+      <Route path="/exercises" element={<PrivateRoute><Layout><ExercisesPage /></Layout></PrivateRoute>} />
+      <Route path="/templates" element={<PrivateRoute><Layout><TemplatesPage /></Layout></PrivateRoute>} />
+      <Route path="/body" element={<PrivateRoute><Layout><BodyPage /></Layout></PrivateRoute>} />
+      <Route path="/challenge" element={<PrivateRoute><Layout><ChallengePage /></Layout></PrivateRoute>} />
     </Routes>
   )
 }
