@@ -23,7 +23,7 @@ export default function BottomNav() {
   const current = tabs.findIndex((t) => t.path === location.pathname)
 
   return (
-    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10 }} elevation={3}>
+    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10 }} elevation={0}>
       <BottomNavigation
         value={current === -1 ? false : current}
         onChange={(_, idx) => navigate(tabs[idx].path)}
