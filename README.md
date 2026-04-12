@@ -62,16 +62,78 @@
 JSON → 정규화 이유: 세트별 조회/수정/삭제 가능, 1RM 계산 시 SQL 한 줄로 처리, 이전 기록 불러오기 용이
 
 ### ERD
-```
-users
-├── exercises (user_id nullable)       커스텀 운동 종목
-├── workout_logs (user_id)             날짜별 운동 일지
-│   └── workout_sets (workout_log_id)  세트별 기록
-│       └── exercises (exercise_id)   종목 참조
-├── workout_templates (user_id)        루틴 템플릿
-│   └── template_exercises             템플릿-종목 연결
-│       └── exercises (exercise_id)
-└── body_records (user_id)             신체 기록
+
+```mermaid
+erDiagram
+    users {
+        bigint id PK
+        string name
+        string email
+        string password
+        timestamp created_at
+        timestamp updated_at
+    }
+    exercises {
+        bigint id PK
+        string name
+        string category
+        boolean is_default
+        bigint user_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+    workout_logs {
+        bigint id PK
+        bigint user_id FK
+        date record_date
+        text memo
+        timestamp created_at
+        timestamp updated_at
+    }
+    workout_sets {
+        bigint id PK
+        bigint workout_log_id FK
+        bigint exercise_id FK
+        tinyint set_number
+        smallint reps
+        decimal weight
+        timestamp created_at
+        timestamp updated_at
+    }
+    workout_templates {
+        bigint id PK
+        bigint user_id FK
+        string name
+        timestamp created_at
+        timestamp updated_at
+    }
+    template_exercises {
+        bigint id PK
+        bigint template_id FK
+        bigint exercise_id FK
+        tinyint sort_order
+        timestamp created_at
+        timestamp updated_at
+    }
+    body_records {
+        bigint id PK
+        bigint user_id FK
+        date measured_at
+        decimal weight
+        decimal muscle_mass
+        decimal body_fat
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    users ||--o{ exercises : "커스텀 종목"
+    users ||--o{ workout_logs : "운동 일지"
+    users ||--o{ workout_templates : "템플릿"
+    users ||--o{ body_records : "신체 기록"
+    workout_logs ||--o{ workout_sets : "세트 기록"
+    exercises ||--o{ workout_sets : "종목 참조"
+    workout_templates ||--o{ template_exercises : "템플릿 종목"
+    exercises ||--o{ template_exercises : "종목 참조"
 ```
 
 <br/>
