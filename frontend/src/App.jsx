@@ -10,7 +10,6 @@ import LogPage from './pages/Log/LogPage'
 import ExercisesPage from './pages/Exercises/ExercisesPage'
 import TemplatesPage from './pages/Templates/TemplatesPage'
 import BodyPage from './pages/Body/BodyPage'
-import ChallengePage from './pages/Challenge/ChallengePage'
 import MorePage from './pages/More/MorePage'
 
 function PrivateRoute({ children }) {
@@ -52,7 +51,6 @@ function AppRoutes() {
       <Route path="/exercises" element={<PrivateRoute><Layout><ExercisesPage /></Layout></PrivateRoute>} />
       <Route path="/templates" element={<PrivateRoute><Layout><TemplatesPage /></Layout></PrivateRoute>} />
       <Route path="/body" element={<PrivateRoute><Layout><BodyPage /></Layout></PrivateRoute>} />
-      <Route path="/challenge" element={<PrivateRoute><Layout><ChallengePage /></Layout></PrivateRoute>} />
       <Route path="/more" element={<PrivateRoute><Layout><MorePage /></Layout></PrivateRoute>} />
     </Routes>
   )
