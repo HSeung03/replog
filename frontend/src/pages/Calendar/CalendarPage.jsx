@@ -5,10 +5,12 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { getCalendar } from '../../api/workoutLogs'
+import { useAuth } from '../../contexts/AuthContext'
 import './calendar.css'
 
 export default function CalendarPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -40,12 +42,19 @@ export default function CalendarPage() {
 
   return (
     <Box p={2}>
-      <Typography variant="h6" fontWeight="bold" mb={2}>Replog</Typography>
+      <Box mb={3}>
+        <Typography variant="body2" color="text.secondary">안녕하세요 👋</Typography>
+        <Typography variant="h6" fontWeight="bold" color="primary">
+          {user?.name}님
+        </Typography>
+      </Box>
+
       {loading && (
         <Box display="flex" justifyContent="center" mb={1}>
           <CircularProgress size={20} />
         </Box>
       )}
+
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"

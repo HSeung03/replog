@@ -31,7 +31,7 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #EDE9FE 100%)',
+          background: 'linear-gradient(160deg, #F8FBFF 0%, #EBF4FF 50%, #DBEAFE 100%)',
           minHeight: '100vh',
         },
       },

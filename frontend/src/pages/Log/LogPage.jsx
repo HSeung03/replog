@@ -181,7 +181,14 @@ export default function LogPage() {
   return (
     <Box p={2}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight="bold">{date}</Typography>
+        <Box>
+          <Typography variant="caption" color="text.secondary">
+            {new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'long' })}
+          </Typography>
+          <Typography variant="h6" fontWeight="bold">
+            {new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
+          </Typography>
+        </Box>
         {log && (
           <Button
             size="small"
