@@ -1,74 +1,156 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, Typography, CircularProgress } from '@mui/material'
-import FullCalendar from '@fullcalendar/react'
-import dayGridPlugin from '@fullcalendar/daygrid'
-import interactionPlugin from '@fullcalendar/interaction'
+import { ChevronLeft, ChevronRight, Zap } from 'lucide-react'
 import { getCalendar } from '../../api/workoutLogs'
-import { useAuth } from '../../contexts/AuthContext'
-import './calendar.css'
+
+const DAYS = ['월', '화', '수', '목', '금', '토', '일']
+const MONTHS = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월']
+
+function buildCalendar(year, month) {
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  // 월요일 시작: Sun=0 → 6, Mon=1 → 0, ...
+  const startDow = (firstDay.getDay() + 6) % 7
+  const days = []
+
+  // 이전 달 패딩
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = new Date(year, month, -i)
+    days.push({ date: d, current: false })
+  }
+  // 이번 달
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    days.push({ date: new Date(year, month, i), current: true })
+  }
+  // 다음 달 패딩 (7의 배수 맞추기)
+  const remaining = days.length % 7 === 0 ? 0 : 7 - (days.length % 7)
+  for (let i = 1; i <= remaining; i++) {
+    days.push({ date: new Date(year, month + 1, i), current: false })
+  }
+  return days
+}
 
 export default function CalendarPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(false)
+  const now = new Date()
+  const [current, setCurrent] = useState({ year: now.getFullYear(), month: now.getMonth() })
+  const [workoutDates, setWorkoutDates] = useState(new Set())
+  const [sessionCount, setSessionCount] = useState(0)
 
-  const fetchEvents = async (year, month) => {
-    setLoading(true)
-    try {
-      const res = await getCalendar(year, month)
-      const dates = res.data
-      setEvents(dates.map((date) => ({
-        title: '',
-        date,
-        display: 'list-item',
-      })))
-    } catch {
-      // 기록 없으면 빈 캘린더
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    getCalendar(current.year, current.month + 1)
+      .then((res) => {
+        const dates = res.data
+        setWorkoutDates(new Set(dates))
+        setSessionCount(dates.length)
+      })
+      .catch(() => {})
+  }, [current])
 
-  const handleDatesSet = (info) => {
-    const mid = new Date((info.start.getTime() + info.end.getTime()) / 2)
-    fetchEvents(mid.getFullYear(), mid.getMonth() + 1)
-  }
+  const days = buildCalendar(current.year, current.month)
+  const todayStr = now.toISOString().slice(0, 10)
 
-  const handleDateClick = (info) => {
-    navigate(`/log/${info.dateStr}`)
+  const prevMonth = () => setCurrent(({ year, month }) => {
+    if (month === 0) return { year: year - 1, month: 11 }
+    return { year, month: month - 1 }
+  })
+
+  const nextMonth = () => setCurrent(({ year, month }) => {
+    if (month === 11) return { year: year + 1, month: 0 }
+    return { year, month: month + 1 }
+  })
+
+  const toDateStr = (date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   }
 
   return (
-    <Box p={2}>
-      <Box mb={3}>
-        <Typography variant="body2" color="text.secondary">안녕하세요 👋</Typography>
-        <Typography variant="h6" fontWeight="bold" color="primary">
-          {user?.name}님
-        </Typography>
-      </Box>
+    <div>
+      {/* 페이지 헤더 */}
+      <div className="mb-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">운동 일지</p>
+        <h1 className="text-3xl font-bold text-slate-900 mt-0.5">캘린더</h1>
+      </div>
 
-      {loading && (
-        <Box display="flex" justifyContent="center" mb={1}>
-          <CircularProgress size={20} />
-        </Box>
-      )}
+      {/* 달력 카드 */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm">
+        {/* 월 네비게이션 */}
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-slate-900">
+            {MONTHS[current.month]} {current.year}
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={prevMonth}
+              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
+            >
+              <ChevronLeft size={16} className="text-slate-600" />
+            </button>
+            <button
+              onClick={nextMonth}
+              disabled={current.year === now.getFullYear() && current.month === now.getMonth()}
+              className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight size={16} className="text-slate-600" />
+            </button>
+          </div>
+        </div>
 
-      <FullCalendar
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        locale="ko"
-        headerToolbar={{
-          left: 'prev',
-          center: 'title',
-          right: 'next',
-        }}
-        height="auto"
-        events={events}
-        dateClick={handleDateClick}
-        datesSet={handleDatesSet}
-      />
-    </Box>
+        {/* 요일 헤더 */}
+        <div className="grid grid-cols-7 mb-2">
+          {DAYS.map((d) => (
+            <div key={d} className="text-center text-[10px] font-bold text-slate-400 py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* 날짜 그리드 */}
+        <div className="grid grid-cols-7">
+          {days.map((item, idx) => {
+            const dateStr = toDateStr(item.date)
+            const isToday = dateStr === todayStr
+            const hasWorkout = workoutDates.has(dateStr)
+            const isCurrentMonth = item.current
+
+            const isFuture = dateStr > todayStr
+
+            return (
+              <button
+                key={idx}
+                onClick={() => !isFuture && navigate(`/log/${dateStr}`)}
+                disabled={isFuture}
+                className="flex flex-col items-center justify-center py-1.5 gap-1 disabled:cursor-not-allowed"
+              >
+                <div className={`w-9 h-9 flex items-center justify-center rounded-full text-sm font-semibold transition-colors
+                  ${isToday ? 'bg-[#1E1B4B] text-white' : ''}
+                  ${!isToday && isCurrentMonth && !isFuture ? 'text-slate-800 hover:bg-slate-100' : ''}
+                  ${!isCurrentMonth || isFuture ? 'text-slate-300' : ''}
+                `}>
+                  {item.date.getDate()}
+                </div>
+                <div className={`w-1.5 h-1.5 rounded-full ${hasWorkout ? 'bg-[#3730A3]' : 'invisible'}`} />
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Activity Streak 카드 */}
+      <div className="mt-3 bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+          <Zap size={20} className="text-[#3730A3]" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">이번 달 활동</p>
+          <p className="text-base font-bold text-slate-900 mt-0.5">
+            {sessionCount > 0 ? `이번 달 ${sessionCount}회 운동했어요` : '이번 달 기록이 없습니다'}
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }

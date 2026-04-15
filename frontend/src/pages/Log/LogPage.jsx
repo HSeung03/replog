@@ -1,17 +1,31 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import {
-  Box, Typography, Button, IconButton, TextField, MenuItem,
-  Select, FormControl, InputLabel, Divider, Paper, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions, List, ListItemButton, ListItemText, Chip,
-} from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import DeleteIcon from '@mui/icons-material/Delete'
-import EditIcon from '@mui/icons-material/Edit'
-import ViewListIcon from '@mui/icons-material/ViewList'
+import { Plus, Trash2, Edit2, CheckCircle2, LayoutList } from 'lucide-react'
 import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../../api/workoutLogs'
 import { getExercises } from '../../api/exercises'
 import { getTemplates } from '../../api/templates'
+
+const calc1RM = (weight, reps) => {
+  if (reps <= 0 || reps >= 37) return null
+  if (reps === 1) return weight
+  return Math.round((weight * 36) / (37 - reps) * 10) / 10
+}
+
+function Dialog({ open, onClose, title, children }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative w-full max-w-[430px] bg-white rounded-t-2xl p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-base font-bold text-slate-900 mb-4">{title}</h3>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 export default function LogPage() {
   const { date } = useParams()
@@ -21,41 +35,26 @@ export default function LogPage() {
   const [loading, setLoading] = useState(true)
   const [memo, setMemo] = useState('')
   const [memoSaved, setMemoSaved] = useState(false)
-
-  // 템플릿에서 불러온 종목 (세트 없이 표시용)
   const [pendingExercises, setPendingExercises] = useState([])
 
-  // 세트 추가 다이얼로그
   const [open, setOpen] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState('')
   const [setForm, setSetForm] = useState({ reps: '', weight: '' })
 
-  // 세트 수정 다이얼로그
   const [editOpen, setEditOpen] = useState(false)
   const [editingSet, setEditingSet] = useState(null)
   const [editForm, setEditForm] = useState({ reps: '', weight: '' })
 
-  // 일지 삭제 확인 다이얼로그
   const [deleteLogOpen, setDeleteLogOpen] = useState(false)
-
-  // 템플릿 선택 다이얼로그
   const [templateOpen, setTemplateOpen] = useState(false)
 
   const fetchLog = useCallback(async () => {
     try {
       const res = await getLog(date)
-      if (res.status === 204) {
-        setLog(null)
-        setMemo('')
-      } else {
-        setLog(res.data)
-        setMemo(res.data.memo || '')
-      }
-    } catch {
-      setLog(null)
-    } finally {
-      setLoading(false)
-    }
+      if (res.status === 204) { setLog(null); setMemo('') }
+      else { setLog(res.data); setMemo(res.data.memo || '') }
+    } catch { setLog(null) }
+    finally { setLoading(false) }
   }, [date])
 
   useEffect(() => {
@@ -65,12 +64,8 @@ export default function LogPage() {
   }, [fetchLog])
 
   const handleSaveMemo = async () => {
-    if (!log) {
-      const res = await createLog({ record_date: date, memo })
-      setLog(res.data)
-    } else {
-      await updateLog(log.id, { memo })
-    }
+    if (!log) { const res = await createLog({ record_date: date, memo }); setLog(res.data) }
+    else { await updateLog(log.id, { memo }) }
     setMemoSaved(true)
     setTimeout(() => setMemoSaved(false), 2000)
   }
@@ -89,29 +84,28 @@ export default function LogPage() {
       reps: Number(setForm.reps),
       weight: Number(setForm.weight),
     })
-    // 세트 추가 후 pendingExercises에서 해당 종목 제거
     setPendingExercises((prev) => prev.filter((ex) => ex.id !== selectedExercise))
     setOpen(false)
     setSetForm({ reps: '', weight: '' })
     fetchLog()
   }
 
-  const handleDeleteSet = async (setId) => {
-    await deleteSet(log.id, setId)
-    fetchLog()
-  }
-
-  const handleOpenEditSet = (set) => {
-    setEditingSet(set)
-    setEditForm({ reps: String(set.reps), weight: String(set.weight) })
-    setEditOpen(true)
+  const handleOpenDialog = (exerciseId) => {
+    setSelectedExercise(exerciseId || '')
+    if (exerciseId && log?.sets) {
+      const prevSets = log.sets.filter((s) => s.exercise_id === exerciseId).sort((a, b) => b.set_number - a.set_number)
+      if (prevSets.length > 0) {
+        setSetForm({ reps: String(prevSets[0].reps), weight: String(prevSets[0].weight) })
+        setOpen(true)
+        return
+      }
+    }
+    setSetForm({ reps: '', weight: '' })
+    setOpen(true)
   }
 
   const handleUpdateSet = async () => {
-    await updateSet(log.id, editingSet.id, {
-      reps: Number(editForm.reps),
-      weight: Number(editForm.weight),
-    })
+    await updateSet(log.id, editingSet.id, { reps: Number(editForm.reps), weight: Number(editForm.weight) })
     setEditOpen(false)
     setEditingSet(null)
     fetchLog()
@@ -119,32 +113,9 @@ export default function LogPage() {
 
   const handleDeleteLog = async () => {
     await deleteLog(log.id)
-    setLog(null)
-    setMemo('')
-    setPendingExercises([])
-    setDeleteLogOpen(false)
+    setLog(null); setMemo(''); setPendingExercises([]); setDeleteLogOpen(false)
   }
 
-  const handleOpenDialog = (exerciseId) => {
-    setSelectedExercise(exerciseId || '')
-
-    // 이전 세트 값 자동 복사
-    if (exerciseId && log?.sets) {
-      const prevSets = log.sets
-        .filter((s) => s.exercise_id === exerciseId)
-        .sort((a, b) => b.set_number - a.set_number)
-      if (prevSets.length > 0) {
-        setSetForm({ reps: String(prevSets[0].reps), weight: String(prevSets[0].weight) })
-        setOpen(true)
-        return
-      }
-    }
-
-    setSetForm({ reps: '', weight: '' })
-    setOpen(true)
-  }
-
-  // 템플릿 불러오기
   const handleLoadTemplate = (template) => {
     const existingIds = new Set([
       ...(log?.sets?.map((s) => s.exercise_id) || []),
@@ -155,14 +126,6 @@ export default function LogPage() {
     setTemplateOpen(false)
   }
 
-  // Brzycki 1RM 공식
-  const calc1RM = (weight, reps) => {
-    if (reps <= 0 || reps >= 37) return null
-    if (reps === 1) return weight
-    return Math.round((weight * 36) / (37 - reps) * 10) / 10
-  }
-
-  // 종목별 세트 그룹핑
   const grouped = log?.sets?.reduce((acc, set) => {
     const name = set.exercise?.name || '알 수 없음'
     if (!acc[name]) acc[name] = []
@@ -170,249 +133,264 @@ export default function LogPage() {
     return acc
   }, {}) || {}
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="60vh">
-        <CircularProgress />
-      </Box>
-    )
-  }
+  const totalVolume = Object.values(grouped).flat().reduce((sum, s) => sum + s.weight * s.reps, 0)
+  const totalSets = Object.values(grouped).flat().length
+
+  const dateObj = new Date(date + 'T00:00:00')
+  const dateLabel = dateObj.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-60">
+      <div className="w-7 h-7 border-2 border-slate-200 border-t-[#3730A3] rounded-full animate-spin" />
+    </div>
+  )
 
   return (
-    <Box p={2}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            {new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'long' })}
-          </Typography>
-          <Typography variant="h6" fontWeight="bold">
-            {new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-          </Typography>
-        </Box>
+    <div>
+      {/* 페이지 헤더 */}
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">운동 기록</p>
+          <h1 className="text-2xl font-bold text-slate-900 mt-0.5">{dateLabel}</h1>
+        </div>
         {log && (
-          <Button
-            size="small"
-            color="error"
-            startIcon={<DeleteIcon />}
+          <button
             onClick={() => setDeleteLogOpen(true)}
+            className="text-xs text-slate-400 hover:text-red-500 font-medium transition-colors mt-1"
           >
-            일지 삭제
-          </Button>
+            삭제
+          </button>
         )}
-      </Box>
+      </div>
 
-      {/* 메모 */}
-      <Box display="flex" gap={1} mb={2}>
-        <TextField
-          label="메모"
+      {/* 메인 카드 */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm flex flex-col gap-5">
+
+        {/* 메모 */}
+        <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          size="small"
-          fullWidth
-          multiline
-          maxRows={3}
+          placeholder="오늘의 운동 메모..."
+          rows={2}
+          className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 text-sm placeholder:text-slate-400 resize-none focus:outline-none focus:bg-slate-100 transition-colors"
         />
-        <Button variant="outlined" onClick={handleSaveMemo} sx={{ minWidth: 60 }}>
-          {memoSaved ? '저장됨' : '저장'}
-        </Button>
-      </Box>
 
-      {/* 템플릿 불러오기 */}
-      {templates.length > 0 && (
-        <Button
-          variant="outlined"
-          startIcon={<ViewListIcon />}
-          fullWidth
-          sx={{ mb: 2 }}
-          onClick={() => setTemplateOpen(true)}
+        {memo !== (log?.memo || '') && (
+          <button
+            onClick={handleSaveMemo}
+            className={`-mt-3 self-end px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+              memoSaved ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {memoSaved ? '저장됨 ✓' : '저장'}
+          </button>
+        )}
+
+        {/* 템플릿 불러오기 */}
+        {templates.length > 0 && (
+          <button
+            onClick={() => setTemplateOpen(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wide hover:border-slate-300 hover:text-slate-500 transition-colors"
+          >
+            <LayoutList size={14} />
+            템플릿 불러오기
+          </button>
+        )}
+
+        {/* 빈 상태 */}
+        {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
+          <div className="text-center py-6">
+            <p className="text-sm text-slate-400">아직 기록된 운동이 없습니다.</p>
+          </div>
+        )}
+
+        {/* 세트 목록 */}
+        {Object.entries(grouped).map(([name, sets]) => (
+          <div key={name}>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <p className="font-bold text-slate-900 text-base">{name}</p>
+                <button
+                  onClick={() => Promise.all(sets.map((s) => deleteSet(log.id, s.id))).then(fetchLog)}
+                  className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+              <button
+                onClick={() => handleOpenDialog(sets[0].exercise_id)}
+                className="text-xs font-semibold text-[#3730A3] hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg transition-colors"
+              >
+                + 세트 추가
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {sets.sort((a, b) => a.set_number - b.set_number).map((set) => {
+                const orm = calc1RM(set.weight, set.reps)
+                return (
+                  <div key={set.id} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 group">
+                    <span className="text-xs font-semibold text-slate-400 w-6 shrink-0">{set.set_number}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-800">{set.weight}kg × {set.reps}</p>
+                      {orm && <p className="text-[11px] text-slate-400 mt-0.5">EST. 1RM: {orm}kg</p>}
+                    </div>
+                    <div className="group-hover:hidden">
+                      <CheckCircle2 size={18} className="text-slate-300" />
+                    </div>
+                    <div className="hidden group-hover:flex gap-1 shrink-0">
+                      <button
+                        onClick={() => { setEditingSet(set); setEditForm({ reps: String(set.reps), weight: String(set.weight) }); setEditOpen(true) }}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        onClick={() => deleteSet(log.id, set.id).then(fetchLog)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* 펜딩 종목 */}
+        {pendingExercises.map((ex) => (
+          <div key={ex.id} className="flex items-center justify-between p-4 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
+            <div>
+              <p className="font-semibold text-slate-700 text-sm">{ex.name}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{ex.category}</p>
+            </div>
+            <button
+              onClick={() => handleOpenDialog(ex.id)}
+              className="text-xs font-semibold text-[#3730A3] bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              + 세트 추가
+            </button>
+          </div>
+        ))}
+
+        {/* 운동 추가 버튼 */}
+        <button
+          onClick={() => handleOpenDialog(null)}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#1E1B4B] text-white text-sm font-bold uppercase tracking-wide hover:bg-[#3730A3] transition-colors"
         >
-          템플릿 불러오기
-        </Button>
+          <Plus size={16} strokeWidth={2.5} />
+          운동 추가
+        </button>
+      </div>
+
+      {/* 통계 카드 */}
+      {totalVolume > 0 && (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">총 볼륨</p>
+            <p className="text-2xl font-bold text-[#3730A3] mt-1">{totalVolume.toLocaleString()}<span className="text-sm font-semibold text-slate-400 ml-1">kg</span></p>
+          </div>
+          <div className="bg-white rounded-2xl p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">총 세트</p>
+            <p className="text-2xl font-bold text-[#3730A3] mt-1">{totalSets}</p>
+          </div>
+        </div>
       )}
-
-      {/* 빈 상태 */}
-      {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
-        <Typography color="text.secondary" textAlign="center" mt={5} mb={3}>
-          아직 기록된 운동이 없습니다.
-        </Typography>
-      )}
-
-      {/* 세트 있는 종목 */}
-      {Object.entries(grouped).map(([name, sets]) => (
-        <Paper key={name} sx={{ p: 2, mb: 2 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography fontWeight="bold">{name}</Typography>
-            <Button size="small" startIcon={<AddIcon />} onClick={() => handleOpenDialog(sets[0].exercise_id)}>
-              세트 추가
-            </Button>
-          </Box>
-          <Divider sx={{ mb: 1 }} />
-          {sets.sort((a, b) => a.set_number - b.set_number).map((set) => {
-            const orm = calc1RM(set.weight, set.reps)
-            return (
-              <Box key={set.id} display="flex" alignItems="center" justifyContent="space-between" py={0.5}>
-                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 50 }}>
-                  {set.set_number}세트
-                </Typography>
-                <Box>
-                  <Typography variant="body2" component="span">{set.weight}kg × {set.reps}회</Typography>
-                  {orm && (
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      1RM ~{orm}kg
-                    </Typography>
-                  )}
-                </Box>
-                <Box>
-                  <IconButton size="small" onClick={() => handleOpenEditSet(set)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDeleteSet(set.id)}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
-            )
-          })}
-        </Paper>
-      ))}
-
-      {/* 템플릿에서 불러온 종목 (세트 없음) */}
-      {pendingExercises.map((ex) => (
-        <Paper key={ex.id} sx={{ p: 2, mb: 2, borderStyle: 'dashed', borderColor: 'divider', borderWidth: 1 }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Box>
-              <Typography fontWeight="bold">{ex.name}</Typography>
-              <Chip label={ex.category} size="small" variant="outlined" sx={{ mt: 0.5 }} />
-            </Box>
-            <Button size="small" startIcon={<AddIcon />} onClick={() => handleOpenDialog(ex.id)}>
-              세트 추가
-            </Button>
-          </Box>
-        </Paper>
-      ))}
-
-      {/* 운동 추가 버튼 */}
-      <Button variant="contained" startIcon={<AddIcon />} fullWidth onClick={() => handleOpenDialog(null)}>
-        운동 추가
-      </Button>
 
       {/* 세트 추가 다이얼로그 */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>{selectedExercise ? '세트 추가' : '운동 추가'}</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            <FormControl fullWidth>
-              <InputLabel>운동 종목</InputLabel>
-              <Select
-                value={selectedExercise}
-                label="운동 종목"
-                onChange={(e) => setSelectedExercise(e.target.value)}
-                disabled={!!selectedExercise}
-              >
-                {exercises.map((ex) => (
-                  <MenuItem key={ex.id} value={ex.id}>
-                    [{ex.category}] {ex.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <TextField
-              label="무게 (kg)"
-              type="number"
-              value={setForm.weight}
-              onChange={(e) => setSetForm({ ...setForm, weight: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="횟수"
-              type="number"
-              value={setForm.reps}
-              onChange={(e) => setSetForm({ ...setForm, reps: e.target.value })}
-              fullWidth
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>취소</Button>
-          <Button
-            variant="contained"
-            onClick={handleAddSet}
-            disabled={!selectedExercise || !setForm.reps || !setForm.weight}
-          >
-            추가
-          </Button>
-        </DialogActions>
+      <Dialog open={open} onClose={() => setOpen(false)} title={selectedExercise ? '세트 추가' : '운동 추가'}>
+        <div className="flex flex-col gap-3">
+          {!selectedExercise && (
+            <select
+              value={selectedExercise}
+              onChange={(e) => setSelectedExercise(e.target.value)}
+              className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none"
+            >
+              <option value="">종목 선택</option>
+              {exercises.map((ex) => (
+                <option key={ex.id} value={ex.id}>[{ex.category}] {ex.name}</option>
+              ))}
+            </select>
+          )}
+          <input
+            type="number"
+            placeholder="무게 (kg)"
+            value={setForm.weight}
+            onChange={(e) => setSetForm({ ...setForm, weight: e.target.value })}
+            className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#3730A3] transition-colors"
+          />
+          <input
+            type="number"
+            placeholder="횟수"
+            value={setForm.reps}
+            onChange={(e) => setSetForm({ ...setForm, reps: e.target.value })}
+            className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#3730A3] transition-colors"
+          />
+          <div className="flex gap-2 mt-1">
+            <button onClick={() => setOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">취소</button>
+            <button
+              onClick={handleAddSet}
+              disabled={!selectedExercise || !setForm.reps || !setForm.weight}
+              className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold hover:bg-[#3730A3] transition-colors disabled:opacity-40"
+            >추가</button>
+          </div>
+        </div>
       </Dialog>
 
       {/* 세트 수정 다이얼로그 */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>{editingSet?.set_number}세트 수정</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            <TextField
-              label="무게 (kg)"
-              type="number"
-              value={editForm.weight}
-              onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="횟수"
-              type="number"
-              value={editForm.reps}
-              onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
-              fullWidth
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>취소</Button>
-          <Button
-            variant="contained"
-            onClick={handleUpdateSet}
-            disabled={!editForm.reps || !editForm.weight}
-          >
-            저장
-          </Button>
-        </DialogActions>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} title={`${editingSet?.set_number}세트 수정`}>
+        <div className="flex flex-col gap-3">
+          <input
+            type="number"
+            placeholder="무게 (kg)"
+            value={editForm.weight}
+            onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
+            className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:border-[#3730A3] transition-colors"
+          />
+          <input
+            type="number"
+            placeholder="횟수"
+            value={editForm.reps}
+            onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
+            className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:border-[#3730A3] transition-colors"
+          />
+          <div className="flex gap-2 mt-1">
+            <button onClick={() => setEditOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
+            <button
+              onClick={handleUpdateSet}
+              disabled={!editForm.reps || !editForm.weight}
+              className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
+            >저장</button>
+          </div>
+        </div>
       </Dialog>
 
-      {/* 일지 전체 삭제 확인 다이얼로그 */}
-      <Dialog open={deleteLogOpen} onClose={() => setDeleteLogOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>일지 삭제</DialogTitle>
-        <DialogContent>
-          <Typography>{date} 일지를 전체 삭제할까요?</Typography>
-          <Typography variant="body2" color="text.secondary" mt={1}>
-            모든 세트 기록이 삭제되며 복구할 수 없습니다.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteLogOpen(false)}>취소</Button>
-          <Button variant="contained" color="error" onClick={handleDeleteLog}>
-            삭제
-          </Button>
-        </DialogActions>
+      {/* 일지 삭제 확인 */}
+      <Dialog open={deleteLogOpen} onClose={() => setDeleteLogOpen(false)} title="일지 삭제">
+        <p className="text-sm text-slate-600 mb-4">모든 세트 기록이 삭제되며 복구할 수 없습니다.</p>
+        <div className="flex gap-2">
+          <button onClick={() => setDeleteLogOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
+          <button onClick={handleDeleteLog} className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold">삭제</button>
+        </div>
       </Dialog>
 
-      {/* 템플릿 선택 다이얼로그 */}
-      <Dialog open={templateOpen} onClose={() => setTemplateOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>템플릿 불러오기</DialogTitle>
-        <DialogContent>
-          <List disablePadding>
-            {templates.map((template) => (
-              <ListItemButton key={template.id} onClick={() => handleLoadTemplate(template)}>
-                <ListItemText
-                  primary={template.name}
-                  secondary={template.exercises?.map((ex) => ex.name).join(' · ')}
-                />
-              </ListItemButton>
-            ))}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTemplateOpen(false)}>취소</Button>
-        </DialogActions>
+      {/* 템플릿 선택 */}
+      <Dialog open={templateOpen} onClose={() => setTemplateOpen(false)} title="템플릿 불러오기">
+        <div className="flex flex-col gap-2">
+          {templates.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => handleLoadTemplate(template)}
+              className="text-left p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
+            >
+              <p className="text-sm font-bold text-slate-900">{template.name}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{template.exercises?.map((ex) => ex.name).join(' · ')}</p>
+            </button>
+          ))}
+          <button onClick={() => setTemplateOpen(false)} className="mt-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">닫기</button>
+        </div>
       </Dialog>
-    </Box>
+    </div>
   )
 }
