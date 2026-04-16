@@ -47,7 +47,6 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:80',
-      '/sanctum': 'http://localhost:80',
     },
   },
 })
