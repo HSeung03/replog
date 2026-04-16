@@ -80,7 +80,7 @@ class AuthController extends Controller
     }
 
     // 구글 OAuth 콜백
-    public function googleCallback(Request $request)
+    public function googleCallback()
     {
         try {
             $googleUser = Socialite::driver('google')->user();
