@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { login } from '../../api/auth'
+import { login as loginApi } from '../../api/auth'
 import Input from '../../components/ui/Input'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { setUser } = useAuth()
+  const { login } = useAuth()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -34,8 +34,8 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      const res = await login(form)
-      setUser(res.data.user)
+      const res = await loginApi(form)
+      login(res.data.token, res.data.user)
       navigate('/')
     } catch (err) {
       if (!err.response) {

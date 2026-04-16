@@ -5,11 +5,11 @@ import { logout } from '../../api/auth'
 
 export default function MorePage() {
   const navigate = useNavigate()
-  const { user, setUser } = useAuth()
+  const { user, logout: logoutAuth } = useAuth()
 
   const handleLogout = async () => {
     await logout()
-    setUser(null)
+    logoutAuth()
     navigate('/login')
   }
 

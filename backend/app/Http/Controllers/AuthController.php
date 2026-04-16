@@ -26,10 +26,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        Auth::login($user);
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => '회원가입 성공',
+            'token'   => $token,
             'user'    => $user,
         ], 201);
     }
@@ -48,21 +49,20 @@ class AuthController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
+        $user = Auth::user();
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => '로그인 성공',
-            'user'    => Auth::user(),
+            'token'   => $token,
+            'user'    => $user,
         ]);
     }
 
     // 로그아웃
     public function logout(Request $request)
     {
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => '로그아웃 성공']);
     }
@@ -94,10 +94,9 @@ class AuthController extends Controller
                 ]
             );
 
-            Auth::login($user);
-            $request->session()->regenerate();
+            $token = $user->createToken('auth_token')->plainTextToken;
 
-            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/?login=success');
+            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/?token=' . $token);
         } catch (\Exception $e) {
             return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/login?error=oauth_failed');
         }

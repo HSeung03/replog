@@ -6,7 +6,7 @@ import Input from '../../components/ui/Input'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
-  const { setUser } = useAuth()
+  const { login } = useAuth()
   const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -35,7 +35,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const res = await register(form)
-      setUser(res.data.user)
+      login(res.data.token, res.data.user)
       navigate('/')
     } catch (err) {
       if (!err.response) {
