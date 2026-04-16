@@ -3,19 +3,18 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BodyRecordController;
 use App\Http\Controllers\ExerciseController;
-use App\Http\Controllers\OneRmController;
 use App\Http\Controllers\WorkoutLogController;
 use App\Http\Controllers\WorkoutTemplateController;
 use Illuminate\Support\Facades\Route;
 
 // 인증 불필요
-Route::middleware('web')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
-});
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login',    [AuthController::class, 'login']);
+Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect']);
+Route::get('/auth/google/callback', [AuthController::class, 'googleCallback']);
 
 // 인증 필요
-Route::middleware(['web', 'auth:sanctum'])->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
 
@@ -48,7 +47,4 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
     Route::post('/body-records',               [BodyRecordController::class, 'store']);
     Route::patch('/body-records/{bodyRecord}', [BodyRecordController::class, 'update']);
     Route::delete('/body-records/{bodyRecord}', [BodyRecordController::class, 'destroy']);
-
-    // 1RM 챌린지
-    Route::get('/one-rm', [OneRmController::class, 'index']);
 });

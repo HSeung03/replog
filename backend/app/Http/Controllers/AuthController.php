@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -25,10 +26,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        Auth::login($user);
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => '회원가입 성공',
+            'token'   => $token,
             'user'    => $user,
         ], 201);
     }
@@ -47,21 +49,20 @@ class AuthController extends Controller
             ]);
         }
 
-        $request->session()->regenerate();
+        $user = Auth::user();
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => '로그인 성공',
-            'user'    => Auth::user(),
+            'token'   => $token,
+            'user'    => $user,
         ]);
     }
 
     // 로그아웃
     public function logout(Request $request)
     {
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => '로그아웃 성공']);
     }
@@ -70,5 +71,34 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    // 구글 OAuth 리다이렉트
+    public function googleRedirect()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    // 구글 OAuth 콜백
+    public function googleCallback(Request $request)
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+
+            $user = User::updateOrCreate(
+                ['email' => $googleUser->getEmail()],
+                [
+                    'name'              => $googleUser->getName(),
+                    'google_id'         => $googleUser->getId(),
+                    'password'          => Hash::make(str()->random(24)),
+                ]
+            );
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/?token=' . $token);
+        } catch (\Exception $e) {
+            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/login?error=oauth_failed');
+        }
     }
 }

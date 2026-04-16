@@ -1,19 +1,30 @@
 import { useState, useEffect } from 'react'
-import {
-  Box, Typography, Button, TextField, Paper, Dialog,
-  DialogTitle, DialogContent, DialogActions, IconButton,
-  List, ListItem, ListItemText, Divider, Chip, MenuItem,
-  Select, FormControl, InputLabel,
-} from '@mui/material'
-import AddIcon from '@mui/icons-material/Add'
-import DeleteIcon from '@mui/icons-material/Delete'
-import { getTemplates, createTemplate, deleteTemplate } from '../../api/templates'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Trash2, ChevronLeft, X } from 'lucide-react'
+import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from '../../api/templates'
 import { getExercises } from '../../api/exercises'
 
+function Dialog({ open, onClose, children }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30" />
+      <div
+        className="relative w-full max-w-[430px] bg-white rounded-t-2xl p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function TemplatesPage() {
+  const navigate = useNavigate()
   const [templates, setTemplates] = useState([])
   const [exercises, setExercises] = useState([])
   const [open, setOpen] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState(null)
   const [name, setName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [selectedEx, setSelectedEx] = useState('')
@@ -28,118 +39,158 @@ export default function TemplatesPage() {
     getExercises().then((res) => setExercises(res.data))
   }, [])
 
+  const openCreate = () => {
+    setEditingTemplate(null)
+    setName('')
+    setSelectedExercises([])
+    setSelectedEx('')
+    setOpen(true)
+  }
+
+  const openEdit = (template) => {
+    setEditingTemplate(template)
+    setName(template.name)
+    setSelectedExercises(template.exercises || [])
+    setSelectedEx('')
+    setOpen(true)
+  }
+
+  const handleClose = () => {
+    setOpen(false)
+    setEditingTemplate(null)
+    setName('')
+    setSelectedExercises([])
+    setSelectedEx('')
+  }
+
   const handleAddExercise = () => {
     if (!selectedEx) return
-    const ex = exercises.find((e) => e.id === selectedEx)
-    if (selectedExercises.find((e) => e.id === selectedEx)) return
+    const ex = exercises.find((e) => e.id === Number(selectedEx))
+    if (!ex || selectedExercises.find((e) => e.id === ex.id)) return
     setSelectedExercises([...selectedExercises, ex])
     setSelectedEx('')
   }
 
-  const handleRemoveExercise = (id) => {
-    setSelectedExercises(selectedExercises.filter((e) => e.id !== id))
-  }
-
-  const handleCreate = async () => {
-    await createTemplate({
-      name,
-      exercises: selectedExercises.map((ex) => ({ exercise_id: ex.id })),
-    })
-    setOpen(false)
-    setName('')
-    setSelectedExercises([])
-    fetchTemplates()
-  }
-
-  const handleDelete = async (id) => {
-    await deleteTemplate(id)
+  const handleSave = async () => {
+    const data = { name, exercises: selectedExercises.map((ex) => ({ exercise_id: ex.id })) }
+    if (editingTemplate) {
+      await updateTemplate(editingTemplate.id, data)
+    } else {
+      await createTemplate(data)
+    }
+    handleClose()
     fetchTemplates()
   }
 
   return (
-    <Box p={2}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6" fontWeight="bold">템플릿</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} size="small" onClick={() => setOpen(true)}>
-          템플릿 추가
-        </Button>
-      </Box>
+    <div>
+      {/* 헤더 */}
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={() => navigate('/more')}
+          className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center"
+        >
+          <ChevronLeft size={18} className="text-slate-600" />
+        </button>
+        <div className="flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">더보기</p>
+          <h1 className="text-xl font-bold text-slate-900">템플릿</h1>
+        </div>
+        <button
+          onClick={openCreate}
+          className="w-9 h-9 rounded-xl bg-[#1E1B4B] flex items-center justify-center"
+        >
+          <Plus size={16} className="text-white" strokeWidth={2.5} />
+        </button>
+      </div>
 
-      {templates.length === 0 ? (
-        <Typography color="text.secondary" textAlign="center" mt={5}>
-          저장된 템플릿이 없습니다.
-        </Typography>
-      ) : (
-        <List disablePadding>
-          {templates.map((template, idx) => (
-            <Box key={template.id}>
-              <Paper sx={{ p: 2, mb: 1 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                  <Typography fontWeight="bold">{template.name}</Typography>
-                  <IconButton size="small" onClick={() => handleDelete(template.id)}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-                <Box display="flex" flexWrap="wrap" gap={0.5}>
-                  {template.exercises?.map((ex) => (
-                    <Chip key={ex.id} label={ex.name} size="small" variant="outlined" />
-                  ))}
-                </Box>
-              </Paper>
-            </Box>
-          ))}
-        </List>
-      )}
-
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>템플릿 추가</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            <TextField
-              label="템플릿 이름"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              fullWidth
-              placeholder="예: 월요일 가슴 루틴"
-            />
-            <Box display="flex" gap={1}>
-              <FormControl fullWidth>
-                <InputLabel>종목 선택</InputLabel>
-                <Select
-                  value={selectedEx}
-                  label="종목 선택"
-                  onChange={(e) => setSelectedEx(e.target.value)}
+      {/* 템플릿 목록 */}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        {templates.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-sm text-slate-400">저장된 템플릿이 없습니다.</p>
+          </div>
+        ) : (
+          templates.map((template, idx) => (
+            <div key={template.id}>
+              <div className="flex items-center justify-between px-5 py-4">
+                <button
+                  className="flex-1 min-w-0 text-left"
+                  onClick={() => openEdit(template)}
                 >
-                  {exercises.map((ex) => (
-                    <MenuItem key={ex.id} value={ex.id}>
-                      [{ex.category}] {ex.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Button variant="outlined" onClick={handleAddExercise} sx={{ minWidth: 50 }}>
-                추가
-              </Button>
-            </Box>
-            <Box display="flex" flexWrap="wrap" gap={0.5}>
-              {selectedExercises.map((ex) => (
-                <Chip
-                  key={ex.id}
-                  label={ex.name}
-                  size="small"
-                  onDelete={() => handleRemoveExercise(ex.id)}
-                />
+                  <p className="text-sm font-bold text-slate-900">{template.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    {template.exercises?.map((ex) => ex.name).join(' · ')}
+                  </p>
+                </button>
+                <button
+                  onClick={() => deleteTemplate(template.id).then(fetchTemplates)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0 ml-3"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {idx < templates.length - 1 && <div className="border-t border-slate-50 mx-5" />}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* 추가/수정 다이얼로그 */}
+      <Dialog open={open} onClose={handleClose}>
+        <h3 className="text-base font-bold text-slate-900 mb-4">
+          {editingTemplate ? '템플릿 수정' : '템플릿 추가'}
+        </h3>
+        <div className="flex flex-col gap-3">
+          <input
+            type="text"
+            placeholder="템플릿 이름 (예: 월요일 가슴 루틴)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:border-[#3730A3] transition-colors"
+          />
+          <div className="flex gap-2">
+            <select
+              value={selectedEx}
+              onChange={(e) => setSelectedEx(e.target.value)}
+              className="flex-1 px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none"
+            >
+              <option value="">종목 선택</option>
+              {exercises.map((ex) => (
+                <option key={ex.id} value={ex.id}>[{ex.category}] {ex.name}</option>
               ))}
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>취소</Button>
-          <Button variant="contained" onClick={handleCreate} disabled={!name}>
-            저장
-          </Button>
-        </DialogActions>
+            </select>
+            <button
+              onClick={handleAddExercise}
+              disabled={!selectedEx}
+              className="px-4 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
+            >추가</button>
+          </div>
+          {selectedExercises.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {selectedExercises.map((ex) => (
+                <span key={ex.id} className="flex items-center gap-1 text-xs bg-indigo-50 text-[#3730A3] px-2.5 py-1 rounded-full font-semibold">
+                  {ex.name}
+                  <button
+                    onClick={() => setSelectedExercises(selectedExercises.filter((e) => e.id !== ex.id))}
+                    className="hover:text-red-500 transition-colors"
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 mt-1">
+            <button onClick={handleClose} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
+            <button
+              onClick={handleSave}
+              disabled={!name}
+              className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
+            >저장</button>
+          </div>
+        </div>
       </Dialog>
-    </Box>
+    </div>
   )
 }
