@@ -1,14 +1,8 @@
-import api, { getCsrfCookie } from './axios'
+import api from './axios'
 
-export const register = async (data) => {
-  await getCsrfCookie()
-  return api.post('/register', data)
-}
+export const register = (data) => api.post('/register', data)
 
-export const login = async (data) => {
-  await getCsrfCookie()
-  return api.post('/login', data)
-}
+export const login = (data) => api.post('/login', data)
 
 export const logout = () => api.post('/logout')
 
