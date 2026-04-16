@@ -13,17 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->validateCsrfTokens(except: ['api/*']);
     })
-    ->withCors([
-        'paths' => ['api/*'],
-        'allowed_methods' => ['*'],
-        'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:5174')],
-        'allowed_headers' => ['*'],
-        'exposed_headers' => [],
-        'max_age' => 0,
-        'supports_credentials' => false,
-    ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
