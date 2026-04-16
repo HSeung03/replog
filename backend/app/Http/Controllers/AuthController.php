@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -70,5 +71,35 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json($request->user());
+    }
+
+    // 구글 OAuth 리다이렉트
+    public function googleRedirect()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    // 구글 OAuth 콜백
+    public function googleCallback(Request $request)
+    {
+        try {
+            $googleUser = Socialite::driver('google')->user();
+
+            $user = User::updateOrCreate(
+                ['email' => $googleUser->getEmail()],
+                [
+                    'name'              => $googleUser->getName(),
+                    'google_id'         => $googleUser->getId(),
+                    'password'          => Hash::make(str()->random(24)),
+                ]
+            );
+
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/?login=success');
+        } catch (\Exception $e) {
+            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/login?error=oauth_failed');
+        }
     }
 }
