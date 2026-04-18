@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\Route;
 // 인증 불필요
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
-Route::middleware('web')->group(function () {
-    Route::get('/auth/google/redirect', [AuthController::class, 'googleRedirect']);
-    Route::get('/auth/google/callback', [AuthController::class, 'googleCallback']);
-});
 
 // 인증 필요
 Route::middleware('auth:sanctum')->group(function () {
