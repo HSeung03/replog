@@ -5,4 +5,4 @@ nixPkgs = ["php84", "php84Extensions.pdo_mysql", "php84Extensions.mbstring", "ph
 cmds = ["composer install --optimize-autoloader --no-dev --no-scripts --no-interaction"]
 
 [start]
-cmd = "php artisan config:clear && php artisan config:cache && php artisan migrate --force && php -S 0.0.0.0:$PORT -t public"
+cmd = "php artisan config:clear && php artisan route:clear && php artisan config:cache && php artisan migrate --force && php -S 0.0.0.0:$PORT -t public"
