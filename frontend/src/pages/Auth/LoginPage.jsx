@@ -93,7 +93,7 @@ export default function LoginPage() {
             </div>
 
             <a
-              href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/api/auth/google/redirect`}
+              href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/auth/google/redirect`}
               className="w-full py-4 rounded-2xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
             >
               <svg width="18" height="18" viewBox="0 0 48 48">
