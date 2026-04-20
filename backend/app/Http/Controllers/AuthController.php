@@ -76,14 +76,14 @@ class AuthController extends Controller
     // 구글 OAuth 리다이렉트
     public function googleRedirect()
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     // 구글 OAuth 콜백
     public function googleCallback()
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')->stateless()->user();
 
             $user = User::updateOrCreate(
                 ['email' => $googleUser->getEmail()],
