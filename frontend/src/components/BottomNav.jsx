@@ -1,11 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Home, Plus, User } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const today = new Date().toISOString().slice(0, 10)
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useTranslation()
 
   const isHome = location.pathname === '/'
   const isProfile = location.pathname === '/more'
@@ -24,7 +26,7 @@ export default function BottomNav() {
             className={isHome ? 'text-[#3730A3]' : 'text-slate-400'}
           />
           <span className={`text-[10px] font-bold uppercase tracking-wide ${isHome ? 'text-[#3730A3]' : 'text-slate-400'}`}>
-            홈
+            {t('nav.home')}
           </span>
         </button>
 
@@ -36,7 +38,7 @@ export default function BottomNav() {
             <Plus size={22} className="text-white" strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-            기록
+            {t('nav.log')}
           </span>
         </button>
 
@@ -50,7 +52,7 @@ export default function BottomNav() {
             className={isProfile ? 'text-[#3730A3]' : 'text-slate-400'}
           />
           <span className={`text-[10px] font-bold uppercase tracking-wide ${isProfile ? 'text-[#3730A3]' : 'text-slate-400'}`}>
-            프로필
+            {t('nav.profile')}
           </span>
         </button>
 

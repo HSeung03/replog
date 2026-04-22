@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, ChevronLeft } from 'lucide-react'
 import { getExercises, createExercise, deleteExercise } from '../../api/exercises'
+import { useTranslation } from 'react-i18next'
 
-const CATEGORIES = ['가슴', '등', '하체', '어깨', '팔', '유산소']
+const CATEGORY_KEYS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'cardio']
+const CATEGORY_VALUES = { chest: '가슴', back: '등', legs: '하체', shoulders: '어깨', arms: '팔', cardio: '유산소' }
 
 const BADGE_COLORS = {
   '가슴':   'bg-blue-50 text-blue-600',
@@ -31,8 +33,9 @@ function Dialog({ open, onClose, children }) {
 
 export default function ExercisesPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [exercises, setExercises] = useState([])
-  const [selectedCategory, setSelectedCategory] = useState('전체')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', category: '가슴' })
 
@@ -50,11 +53,12 @@ export default function ExercisesPage() {
     fetchExercises()
   }
 
-  const filtered = selectedCategory === '전체' ? exercises : exercises.filter((ex) => ex.category === selectedCategory)
+  const filtered = selectedCategory === 'all'
+    ? exercises
+    : exercises.filter((ex) => ex.category === CATEGORY_VALUES[selectedCategory])
 
   return (
     <div>
-      {/* 헤더 */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => navigate('/more')}
@@ -63,8 +67,8 @@ export default function ExercisesPage() {
           <ChevronLeft size={18} className="text-slate-600" />
         </button>
         <div className="flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">더보기</p>
-          <h1 className="text-xl font-bold text-slate-900">운동 종목</h1>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('exercises.subtitle')}</p>
+          <h1 className="text-xl font-bold text-slate-900">{t('exercises.title')}</h1>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -74,30 +78,26 @@ export default function ExercisesPage() {
         </button>
       </div>
 
-      {/* 카테고리 필터 */}
       <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
-        {['전체', ...CATEGORIES].map((cat) => (
+        {['all', ...CATEGORY_KEYS].map((key) => (
           <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            key={key}
+            onClick={() => setSelectedCategory(key)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
-              selectedCategory === cat
+              selectedCategory === key
                 ? 'bg-[#1E1B4B] text-white'
                 : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
             }`}
           >
-            {cat}
+            {t(`exercises.categories.${key}`)}
           </button>
         ))}
       </div>
 
-      {/* 목록 */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-slate-400">
-              {selectedCategory === '전체' ? '등록된 종목이 없습니다.' : `${selectedCategory} 종목이 없습니다.`}
-            </p>
+            <p className="text-sm text-slate-400">{t('exercises.noExercises')}</p>
           </div>
         ) : (
           filtered.map((ex, idx) => (
@@ -106,7 +106,7 @@ export default function ExercisesPage() {
                 <div>
                   <p className="text-sm font-bold text-slate-900">{ex.name}</p>
                   {!!ex.is_default && (
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-0.5">기본 제공</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-0.5">DEFAULT</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -129,37 +129,36 @@ export default function ExercisesPage() {
         )}
       </div>
 
-      {/* 종목 추가 다이얼로그 */}
       <Dialog open={open} onClose={() => setOpen(false)}>
-        <h3 className="text-base font-bold text-slate-900 mb-4">종목 추가</h3>
+        <h3 className="text-base font-bold text-slate-900 mb-4">{t('exercises.addTitle')}</h3>
         <div className="flex flex-col gap-3">
           <input
             type="text"
-            placeholder="종목명 (예: 인클라인 벤치프레스)"
+            placeholder={t('exercises.namePlaceholder')}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#3730A3] transition-colors"
           />
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
+            {CATEGORY_KEYS.map((key) => (
               <button
-                key={cat}
-                onClick={() => setForm({ ...form, category: cat })}
+                key={key}
+                onClick={() => setForm({ ...form, category: CATEGORY_VALUES[key] })}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                  form.category === cat ? 'bg-[#1E1B4B] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  form.category === CATEGORY_VALUES[key] ? 'bg-[#1E1B4B] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
               >
-                {cat}
+                {t(`exercises.categories.${key}`)}
               </button>
             ))}
           </div>
           <div className="flex gap-2 mt-1">
-            <button onClick={() => setOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
+            <button onClick={() => setOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">{t('common.cancel')}</button>
             <button
               onClick={handleCreate}
               disabled={!form.name}
               className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
-            >추가</button>
+            >{t('common.add')}</button>
           </div>
         </div>
       </Dialog>

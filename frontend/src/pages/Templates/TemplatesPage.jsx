@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, ChevronLeft, X } from 'lucide-react'
 import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from '../../api/templates'
 import { getExercises } from '../../api/exercises'
+import { useTranslation } from 'react-i18next'
+
+const CATEGORY_KEYS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'cardio']
+const CATEGORY_VALUES = { chest: '가슴', back: '등', legs: '하체', shoulders: '어깨', arms: '팔', cardio: '유산소' }
 
 function Dialog({ open, onClose, children }) {
   if (!open) return null
@@ -21,6 +25,7 @@ function Dialog({ open, onClose, children }) {
 
 export default function TemplatesPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [templates, setTemplates] = useState([])
   const [exercises, setExercises] = useState([])
   const [open, setOpen] = useState(false)
@@ -86,9 +91,10 @@ export default function TemplatesPage() {
     fetchTemplates()
   }
 
+  const selectedCategoryValue = selectedCategory ? CATEGORY_VALUES[selectedCategory] : ''
+
   return (
     <div>
-      {/* 헤더 */}
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => navigate('/more')}
@@ -97,8 +103,8 @@ export default function TemplatesPage() {
           <ChevronLeft size={18} className="text-slate-600" />
         </button>
         <div className="flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">더보기</p>
-          <h1 className="text-xl font-bold text-slate-900">템플릿</h1>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('templates.subtitle')}</p>
+          <h1 className="text-xl font-bold text-slate-900">{t('templates.title')}</h1>
         </div>
         <button
           onClick={openCreate}
@@ -108,11 +114,10 @@ export default function TemplatesPage() {
         </button>
       </div>
 
-      {/* 템플릿 목록 */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         {templates.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-slate-400">저장된 템플릿이 없습니다.</p>
+            <p className="text-sm text-slate-400">{t('templates.noTemplates')}</p>
           </div>
         ) : (
           templates.map((template, idx) => (
@@ -140,15 +145,14 @@ export default function TemplatesPage() {
         )}
       </div>
 
-      {/* 추가/수정 다이얼로그 */}
       <Dialog open={open} onClose={handleClose}>
         <h3 className="text-base font-bold text-slate-900 mb-4">
-          {editingTemplate ? '템플릿 수정' : '템플릿 추가'}
+          {editingTemplate ? t('templates.editTitle') : t('templates.addTitle')}
         </h3>
         <div className="flex flex-col gap-3">
           <input
             type="text"
-            placeholder="템플릿 이름 (예: 월요일 가슴 루틴)"
+            placeholder={t('templates.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:border-[#3730A3] transition-colors"
@@ -159,9 +163,9 @@ export default function TemplatesPage() {
               onChange={(e) => { setSelectedCategory(e.target.value); setSelectedEx('') }}
               className="w-28 px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none shrink-0"
             >
-              <option value="">카테고리</option>
-              {['가슴','등','하체','어깨','팔','유산소'].map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+              <option value="">{t('templates.categoryPlaceholder')}</option>
+              {CATEGORY_KEYS.map((key) => (
+                <option key={key} value={key}>{t(`templates.categories.${key}`)}</option>
               ))}
             </select>
             <select
@@ -169,9 +173,9 @@ export default function TemplatesPage() {
               onChange={(e) => setSelectedEx(e.target.value)}
               className="flex-1 px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none"
             >
-              <option value="">종목 선택</option>
+              <option value="">{t('templates.exercisePlaceholder')}</option>
               {exercises
-                .filter((ex) => !selectedCategory || ex.category === selectedCategory)
+                .filter((ex) => !selectedCategoryValue || ex.category === selectedCategoryValue)
                 .map((ex) => (
                   <option key={ex.id} value={ex.id}>{ex.name}</option>
                 ))}
@@ -180,7 +184,7 @@ export default function TemplatesPage() {
               onClick={handleAddExercise}
               disabled={!selectedEx}
               className="px-4 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
-            >추가</button>
+            >{t('common.add')}</button>
           </div>
           {selectedExercises.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -198,12 +202,12 @@ export default function TemplatesPage() {
             </div>
           )}
           <div className="flex gap-2 mt-1">
-            <button onClick={handleClose} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
+            <button onClick={handleClose} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">{t('common.cancel')}</button>
             <button
               onClick={handleSave}
               disabled={!name}
               className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
-            >저장</button>
+            >{t('common.save')}</button>
           </div>
         </div>
       </Dialog>
