@@ -28,6 +28,7 @@ export default function TemplatesPage() {
   const [name, setName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [selectedEx, setSelectedEx] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
 
   const fetchTemplates = async () => {
     const res = await getTemplates()
@@ -44,6 +45,7 @@ export default function TemplatesPage() {
     setName('')
     setSelectedExercises([])
     setSelectedEx('')
+    setSelectedCategory('')
     setOpen(true)
   }
 
@@ -52,6 +54,7 @@ export default function TemplatesPage() {
     setName(template.name)
     setSelectedExercises(template.exercises || [])
     setSelectedEx('')
+    setSelectedCategory('')
     setOpen(true)
   }
 
@@ -61,6 +64,7 @@ export default function TemplatesPage() {
     setName('')
     setSelectedExercises([])
     setSelectedEx('')
+    setSelectedCategory('')
   }
 
   const handleAddExercise = () => {
@@ -151,14 +155,26 @@ export default function TemplatesPage() {
           />
           <div className="flex gap-2">
             <select
+              value={selectedCategory}
+              onChange={(e) => { setSelectedCategory(e.target.value); setSelectedEx('') }}
+              className="w-28 px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none shrink-0"
+            >
+              <option value="">카테고리</option>
+              {['가슴','등','하체','어깨','팔','유산소'].map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <select
               value={selectedEx}
               onChange={(e) => setSelectedEx(e.target.value)}
               className="flex-1 px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none"
             >
               <option value="">종목 선택</option>
-              {exercises.map((ex) => (
-                <option key={ex.id} value={ex.id}>[{ex.category}] {ex.name}</option>
-              ))}
+              {exercises
+                .filter((ex) => !selectedCategory || ex.category === selectedCategory)
+                .map((ex) => (
+                  <option key={ex.id} value={ex.id}>{ex.name}</option>
+                ))}
             </select>
             <button
               onClick={handleAddExercise}
