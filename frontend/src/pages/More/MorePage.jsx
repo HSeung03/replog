@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { List, LayoutList, LogOut, ChevronRight } from 'lucide-react'
+import { List, LayoutList, LogOut, ChevronRight, Languages } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { logout } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
@@ -7,12 +7,18 @@ import { useTranslation } from 'react-i18next'
 export default function MorePage() {
   const navigate = useNavigate()
   const { user, logout: logoutAuth } = useAuth()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const handleLogout = async () => {
     await logout()
     logoutAuth()
     navigate('/login')
+  }
+
+  const toggleLang = () => {
+    const next = i18n.language === 'ko' ? 'ja' : 'ko'
+    i18n.changeLanguage(next)
+    localStorage.setItem('lang', next)
   }
 
   return (
@@ -56,6 +62,26 @@ export default function MorePage() {
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">{t('more.templatesDesc')}</p>
           </div>
           <ChevronRight size={16} className="text-slate-300 shrink-0" />
+        </button>
+
+        <div className="border-t border-slate-100 mx-5" />
+
+        <button
+          onClick={toggleLang}
+          className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 transition-colors"
+        >
+          <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+            <Languages size={18} className="text-[#3730A3]" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-bold text-slate-900">{t('more.language')}</p>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-0.5">
+              {i18n.language === 'ko' ? '한국어' : '日本語'}
+            </p>
+          </div>
+          <span className="text-xs font-bold text-slate-400">
+            {i18n.language === 'ko' ? '🇯🇵 日本語' : '🇰🇷 한국어'}
+          </span>
         </button>
 
         <div className="border-t border-slate-100" />

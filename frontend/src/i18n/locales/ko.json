@@ -88,6 +88,7 @@
     "exercisesDesc": "등록된 종목 관리",
     "templates": "템플릿",
     "templatesDesc": "루틴 템플릿 관리",
+    "language": "언어",
     "logout": "로그아웃",
     "logoutDesc": "세션 종료"
   },

@@ -88,6 +88,7 @@
     "exercisesDesc": "登録種目の管理",
     "templates": "テンプレート",
     "templatesDesc": "ルーティンテンプレートの管理",
+    "language": "言語",
     "logout": "ログアウト",
     "logoutDesc": "セッション終了"
   },
