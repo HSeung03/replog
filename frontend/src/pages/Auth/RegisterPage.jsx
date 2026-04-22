@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { register } from '../../api/auth'
 import Input from '../../components/ui/Input'
+import { useTranslation } from 'react-i18next'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { t } = useTranslation()
   const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,19 +18,19 @@ export default function RegisterPage() {
     setError('')
 
     if (!form.name || !form.email || !form.password || !form.password_confirmation) {
-      setError('모든 항목을 입력해주세요.')
+      setError(t('register.errors.emptyFields'))
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setError('올바른 이메일 형식이 아닙니다.')
+      setError(t('register.errors.invalidEmail'))
       return
     }
     if (form.password !== form.password_confirmation) {
-      setError('비밀번호가 일치하지 않습니다.')
+      setError(t('register.errors.passwordMismatch'))
       return
     }
     if (form.password.length < 8) {
-      setError('비밀번호는 8자 이상이어야 합니다.')
+      setError(t('register.errors.passwordTooShort'))
       return
     }
 
@@ -39,13 +41,13 @@ export default function RegisterPage() {
       navigate('/')
     } catch (err) {
       if (!err.response) {
-        setError('서버에 연결할 수 없습니다.')
+        setError(t('common.serverError'))
       } else if (err.response.status === 422) {
         const errors = err.response.data?.errors
         const first = errors ? Object.values(errors)[0]?.[0] : null
-        setError(first || err.response.data?.message || '입력 정보를 확인해주세요.')
+        setError(first || err.response.data?.message || t('register.errors.validationFailed'))
       } else {
-        setError('오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+        setError(t('common.error'))
       }
     } finally {
       setLoading(false)
@@ -58,34 +60,34 @@ export default function RegisterPage() {
 
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-[#3730A3]">Replog</h1>
-          <p className="text-sm text-slate-400 mt-2">새 계정을 만드세요</p>
+          <p className="text-sm text-slate-400 mt-2">{t('register.subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm px-6 py-7">
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input
-              label="이름"
+              label={t('register.name')}
               type="text"
-              placeholder="홍길동"
+              placeholder={t('register.namePlaceholder')}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
             <Input
-              label="이메일"
+              label={t('register.email')}
               type="text"
               placeholder="your@email.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             <Input
-              label="비밀번호"
+              label={t('register.password')}
               type="password"
               placeholder="••••••••"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
             <Input
-              label="비밀번호 확인"
+              label={t('register.passwordConfirm')}
               type="password"
               placeholder="••••••••"
               value={form.password_confirmation}
@@ -99,15 +101,15 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full py-4 rounded-2xl bg-[#1E1B4B] text-white text-sm font-bold hover:bg-[#3730A3] transition-colors disabled:opacity-50 mt-1"
             >
-              {loading ? '처리 중...' : '회원가입'}
+              {loading ? t('register.processing') : t('register.registerButton')}
             </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-slate-400 mt-5">
-          이미 계정이 있으신가요?{' '}
+          {t('register.haveAccount')}{' '}
           <button onClick={() => navigate('/login')} className="text-[#3730A3] font-bold hover:underline">
-            로그인
+            {t('register.login')}
           </button>
         </p>
 

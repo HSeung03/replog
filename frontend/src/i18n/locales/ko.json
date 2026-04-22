@@ -1,0 +1,112 @@
+{
+  "common": {
+    "cancel": "취소",
+    "save": "저장",
+    "delete": "삭제",
+    "add": "추가",
+    "close": "닫기",
+    "loading": "처리 중...",
+    "error": "오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+    "serverError": "서버에 연결할 수 없습니다."
+  },
+  "nav": {
+    "home": "홈",
+    "log": "기록",
+    "profile": "프로필"
+  },
+  "login": {
+    "title": "다시 만나서 반가워요",
+    "subtitle": "운동 기록을 이어가세요",
+    "email": "이메일",
+    "password": "비밀번호",
+    "loginButton": "로그인",
+    "loggingIn": "로그인 중...",
+    "googleLogin": "Google로 계속하기",
+    "noAccount": "계정이 없으신가요?",
+    "register": "회원가입",
+    "errors": {
+      "emptyFields": "이메일과 비밀번호를 입력해주세요.",
+      "invalidEmail": "올바른 이메일 형식이 아닙니다.",
+      "wrongCredentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
+      "googleFailed": "구글 로그인에 실패했습니다. 다시 시도해주세요."
+    }
+  },
+  "register": {
+    "title": "시작해볼까요",
+    "subtitle": "운동 기록의 첫 걸음",
+    "name": "이름",
+    "namePlaceholder": "홍길동",
+    "email": "이메일",
+    "password": "비밀번호",
+    "passwordConfirm": "비밀번호 확인",
+    "registerButton": "회원가입",
+    "processing": "처리 중...",
+    "haveAccount": "이미 계정이 있으신가요?",
+    "login": "로그인",
+    "errors": {
+      "emptyFields": "모든 항목을 입력해주세요.",
+      "invalidEmail": "올바른 이메일 형식이 아닙니다.",
+      "passwordMismatch": "비밀번호가 일치하지 않습니다.",
+      "passwordTooShort": "비밀번호는 8자 이상이어야 합니다.",
+      "validationFailed": "입력 정보를 확인해주세요."
+    }
+  },
+  "calendar": {
+    "days": ["월", "화", "수", "목", "금", "토", "일"],
+    "noRecord": "이번 달 기록이 없습니다"
+  },
+  "exercises": {
+    "title": "운동 종목",
+    "subtitle": "더보기",
+    "namePlaceholder": "종목명 (예: 인클라인 벤치프레스)",
+    "addTitle": "종목 추가",
+    "noExercises": "등록된 종목이 없습니다.",
+    "categories": {
+      "all": "전체",
+      "chest": "가슴",
+      "back": "등",
+      "legs": "하체",
+      "shoulders": "어깨",
+      "arms": "팔",
+      "cardio": "유산소"
+    }
+  },
+  "log": {
+    "memoPlaceholder": "오늘의 운동 메모...",
+    "weight": "무게 (kg)",
+    "reps": "횟수",
+    "deleteLog": "일지 삭제",
+    "loadTemplate": "템플릿 불러오기",
+    "saved": "저장됨 ✓",
+    "save": "저장",
+    "addSet": "세트 추가",
+    "addExercise": "운동 추가",
+    "unknown": "알 수 없음"
+  },
+  "more": {
+    "exercises": "운동 종목",
+    "exercisesDesc": "등록된 종목 관리",
+    "templates": "템플릿",
+    "templatesDesc": "루틴 템플릿 관리",
+    "logout": "로그아웃",
+    "logoutDesc": "세션 종료"
+  },
+  "templates": {
+    "title": "템플릿",
+    "subtitle": "더보기",
+    "noTemplates": "저장된 템플릿이 없습니다.",
+    "addTitle": "템플릿 추가",
+    "editTitle": "템플릿 수정",
+    "namePlaceholder": "템플릿 이름 (예: 월요일 가슴 루틴)",
+    "categoryPlaceholder": "카테고리",
+    "exercisePlaceholder": "종목 선택",
+    "categories": {
+      "chest": "가슴",
+      "back": "등",
+      "legs": "하체",
+      "shoulders": "어깨",
+      "arms": "팔",
+      "cardio": "유산소"
+    }
+  }
+}

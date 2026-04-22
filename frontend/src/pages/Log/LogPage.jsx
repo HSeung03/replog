@@ -4,6 +4,7 @@ import { Plus, Trash2, Edit2, CheckCircle2, LayoutList } from 'lucide-react'
 import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../../api/workoutLogs'
 import { getExercises } from '../../api/exercises'
 import { getTemplates } from '../../api/templates'
+import { useTranslation } from 'react-i18next'
 
 const calc1RM = (weight, reps) => {
   if (reps <= 0 || reps >= 37) return null
@@ -29,6 +30,7 @@ function Dialog({ open, onClose, title, children }) {
 
 export default function LogPage() {
   const { date } = useParams()
+  const { t, i18n } = useTranslation()
   const [log, setLog] = useState(null)
   const [exercises, setExercises] = useState([])
   const [templates, setTemplates] = useState([])
@@ -127,7 +129,7 @@ export default function LogPage() {
   }
 
   const grouped = log?.sets?.reduce((acc, set) => {
-    const name = set.exercise?.name || '알 수 없음'
+    const name = set.exercise?.name || t('log.unknown')
     if (!acc[name]) acc[name] = []
     acc[name].push(set)
     return acc
@@ -137,7 +139,7 @@ export default function LogPage() {
   const totalSets = Object.values(grouped).flat().length
 
   const dateObj = new Date(date + 'T00:00:00')
-  const dateLabel = dateObj.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
+  const dateLabel = dateObj.toLocaleDateString(i18n.language === 'ja' ? 'ja-JP' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
 
   if (loading) return (
     <div className="flex items-center justify-center h-60">
@@ -147,10 +149,11 @@ export default function LogPage() {
 
   return (
     <div>
-      {/* 페이지 헤더 */}
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">운동 기록</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            {i18n.language === 'ja' ? 'トレーニング記録' : '운동 기록'}
+          </p>
           <h1 className="text-2xl font-bold text-slate-900 mt-0.5">{dateLabel}</h1>
         </div>
         {log && (
@@ -158,19 +161,17 @@ export default function LogPage() {
             onClick={() => setDeleteLogOpen(true)}
             className="text-xs text-slate-400 hover:text-red-500 font-medium transition-colors mt-1"
           >
-            삭제
+            {t('common.delete')}
           </button>
         )}
       </div>
 
-      {/* 메인 카드 */}
       <div className="bg-white rounded-2xl p-5 shadow-sm flex flex-col gap-5">
 
-        {/* 메모 */}
         <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          placeholder="오늘의 운동 메모..."
+          placeholder={t('log.memoPlaceholder')}
           rows={2}
           className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 text-sm placeholder:text-slate-400 resize-none focus:outline-none focus:bg-slate-100 transition-colors"
         />
@@ -182,29 +183,28 @@ export default function LogPage() {
               memoSaved ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            {memoSaved ? '저장됨 ✓' : '저장'}
+            {memoSaved ? t('log.saved') : t('log.save')}
           </button>
         )}
 
-        {/* 템플릿 불러오기 */}
         {templates.length > 0 && (
           <button
             onClick={() => setTemplateOpen(true)}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wide hover:border-slate-300 hover:text-slate-500 transition-colors"
           >
             <LayoutList size={14} />
-            템플릿 불러오기
+            {t('log.loadTemplate')}
           </button>
         )}
 
-        {/* 빈 상태 */}
         {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
           <div className="text-center py-6">
-            <p className="text-sm text-slate-400">아직 기록된 운동이 없습니다.</p>
+            <p className="text-sm text-slate-400">
+              {i18n.language === 'ja' ? 'まだ記録されたトレーニングはありません。' : '아직 기록된 운동이 없습니다.'}
+            </p>
           </div>
         )}
 
-        {/* 세트 목록 */}
         {Object.entries(grouped).map(([name, sets]) => (
           <div key={name}>
             <div className="flex items-center justify-between mb-2.5">
@@ -221,7 +221,7 @@ export default function LogPage() {
                 onClick={() => handleOpenDialog(sets[0].exercise_id)}
                 className="text-xs font-semibold text-[#3730A3] hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg transition-colors"
               >
-                + 세트 추가
+                + {t('log.addSet')}
               </button>
             </div>
             <div className="flex flex-col gap-2">
@@ -258,7 +258,6 @@ export default function LogPage() {
           </div>
         ))}
 
-        {/* 펜딩 종목 */}
         {pendingExercises.map((ex) => (
           <div key={ex.id} className="flex items-center justify-between p-4 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
             <div>
@@ -269,37 +268,38 @@ export default function LogPage() {
               onClick={() => handleOpenDialog(ex.id)}
               className="text-xs font-semibold text-[#3730A3] bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
             >
-              + 세트 추가
+              + {t('log.addSet')}
             </button>
           </div>
         ))}
 
-        {/* 운동 추가 버튼 */}
         <button
           onClick={() => handleOpenDialog(null)}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#1E1B4B] text-white text-sm font-bold uppercase tracking-wide hover:bg-[#3730A3] transition-colors"
         >
           <Plus size={16} strokeWidth={2.5} />
-          운동 추가
+          {t('log.addExercise')}
         </button>
       </div>
 
-      {/* 통계 카드 */}
       {totalVolume > 0 && (
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">총 볼륨</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              {i18n.language === 'ja' ? '総ボリューム' : '총 볼륨'}
+            </p>
             <p className="text-2xl font-bold text-[#3730A3] mt-1">{totalVolume.toLocaleString()}<span className="text-sm font-semibold text-slate-400 ml-1">kg</span></p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">총 세트</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              {i18n.language === 'ja' ? '総セット' : '총 세트'}
+            </p>
             <p className="text-2xl font-bold text-[#3730A3] mt-1">{totalSets}</p>
           </div>
         </div>
       )}
 
-      {/* 세트 추가 다이얼로그 */}
-      <Dialog open={open} onClose={() => setOpen(false)} title={selectedExercise ? '세트 추가' : '운동 추가'}>
+      <Dialog open={open} onClose={() => setOpen(false)} title={selectedExercise ? t('log.addSet') : t('log.addExercise')}>
         <div className="flex flex-col gap-3">
           {!selectedExercise && (
             <select
@@ -307,7 +307,7 @@ export default function LogPage() {
               onChange={(e) => setSelectedExercise(e.target.value)}
               className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none"
             >
-              <option value="">종목 선택</option>
+              <option value="">{i18n.language === 'ja' ? '種目選択' : '종목 선택'}</option>
               {exercises.map((ex) => (
                 <option key={ex.id} value={ex.id}>[{ex.category}] {ex.name}</option>
               ))}
@@ -315,68 +315,69 @@ export default function LogPage() {
           )}
           <input
             type="number"
-            placeholder="무게 (kg)"
+            placeholder={t('log.weight')}
             value={setForm.weight}
             onChange={(e) => setSetForm({ ...setForm, weight: e.target.value })}
             className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#3730A3] transition-colors"
           />
           <input
             type="number"
-            placeholder="횟수"
+            placeholder={t('log.reps')}
             value={setForm.reps}
             onChange={(e) => setSetForm({ ...setForm, reps: e.target.value })}
             className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#3730A3] transition-colors"
           />
           <div className="flex gap-2 mt-1">
-            <button onClick={() => setOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">취소</button>
+            <button onClick={() => setOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">{t('common.cancel')}</button>
             <button
               onClick={handleAddSet}
               disabled={!selectedExercise || !setForm.reps || !setForm.weight}
               className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold hover:bg-[#3730A3] transition-colors disabled:opacity-40"
-            >추가</button>
+            >{t('common.add')}</button>
           </div>
         </div>
       </Dialog>
 
-      {/* 세트 수정 다이얼로그 */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} title={`${editingSet?.set_number}세트 수정`}>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} title={`${editingSet?.set_number} ${i18n.language === 'ja' ? 'セット編集' : '세트 수정'}`}>
         <div className="flex flex-col gap-3">
           <input
             type="number"
-            placeholder="무게 (kg)"
+            placeholder={t('log.weight')}
             value={editForm.weight}
             onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
             className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:border-[#3730A3] transition-colors"
           />
           <input
             type="number"
-            placeholder="횟수"
+            placeholder={t('log.reps')}
             value={editForm.reps}
             onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
             className="w-full px-3 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm focus:outline-none focus:border-[#3730A3] transition-colors"
           />
           <div className="flex gap-2 mt-1">
-            <button onClick={() => setEditOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
+            <button onClick={() => setEditOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">{t('common.cancel')}</button>
             <button
               onClick={handleUpdateSet}
               disabled={!editForm.reps || !editForm.weight}
               className="flex-1 py-3 rounded-xl bg-[#1E1B4B] text-white text-sm font-semibold disabled:opacity-40"
-            >저장</button>
+            >{t('common.save')}</button>
           </div>
         </div>
       </Dialog>
 
-      {/* 일지 삭제 확인 */}
-      <Dialog open={deleteLogOpen} onClose={() => setDeleteLogOpen(false)} title="일지 삭제">
-        <p className="text-sm text-slate-600 mb-4">모든 세트 기록이 삭제되며 복구할 수 없습니다.</p>
+      <Dialog open={deleteLogOpen} onClose={() => setDeleteLogOpen(false)} title={t('log.deleteLog')}>
+        <p className="text-sm text-slate-600 mb-4">
+          {i18n.language === 'ja'
+            ? 'すべてのセット記録が削除され、復元できません。'
+            : '모든 세트 기록이 삭제되며 복구할 수 없습니다.'}
+        </p>
         <div className="flex gap-2">
-          <button onClick={() => setDeleteLogOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">취소</button>
-          <button onClick={handleDeleteLog} className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold">삭제</button>
+          <button onClick={() => setDeleteLogOpen(false)} className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">{t('common.cancel')}</button>
+          <button onClick={handleDeleteLog} className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold">{t('common.delete')}</button>
         </div>
       </Dialog>
 
-      {/* 템플릿 선택 */}
-      <Dialog open={templateOpen} onClose={() => setTemplateOpen(false)} title="템플릿 불러오기">
+      <Dialog open={templateOpen} onClose={() => setTemplateOpen(false)} title={t('log.loadTemplate')}>
         <div className="flex flex-col gap-2">
           {templates.map((template) => (
             <button
@@ -388,7 +389,7 @@ export default function LogPage() {
               <p className="text-xs text-slate-400 mt-0.5">{template.exercises?.map((ex) => ex.name).join(' · ')}</p>
             </button>
           ))}
-          <button onClick={() => setTemplateOpen(false)} className="mt-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">닫기</button>
+          <button onClick={() => setTemplateOpen(false)} className="mt-1 py-3 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">{t('common.close')}</button>
         </div>
       </Dialog>
     </div>

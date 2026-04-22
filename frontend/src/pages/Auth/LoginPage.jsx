@@ -3,11 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { login as loginApi } from '../../api/auth'
 import Input from '../../components/ui/Input'
+import { useTranslation } from 'react-i18next'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { login } = useAuth()
+  const { t, i18n } = useTranslation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,20 +17,20 @@ export default function LoginPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     if (params.get('error') === 'oauth_failed') {
-      setError('구글 로그인에 실패했습니다. 다시 시도해주세요.')
+      setError(t('login.errors.googleFailed'))
     }
-  }, [location.search])
+  }, [location.search, t])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
     if (!form.email || !form.password) {
-      setError('이메일과 비밀번호를 입력해주세요.')
+      setError(t('login.errors.emptyFields'))
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setError('올바른 이메일 형식이 아닙니다.')
+      setError(t('login.errors.invalidEmail'))
       return
     }
 
@@ -39,37 +41,52 @@ export default function LoginPage() {
       navigate('/')
     } catch (err) {
       if (!err.response) {
-        setError('서버에 연결할 수 없습니다.')
+        setError(t('common.serverError'))
       } else if (err.response.status === 401 || err.response.status === 422) {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+        setError(t('login.errors.wrongCredentials'))
       } else {
-        setError('오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+        setError(t('common.error'))
       }
     } finally {
       setLoading(false)
     }
   }
 
+  const toggleLang = () => {
+    const next = i18n.language === 'ko' ? 'ja' : 'ko'
+    i18n.changeLanguage(next)
+    localStorage.setItem('lang', next)
+  }
+
   return (
     <div className="min-h-screen bg-[#F2F4F7] flex flex-col items-center justify-center px-8">
       <div className="w-full max-w-[390px]">
 
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={toggleLang}
+            className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            {i18n.language === 'ko' ? '🇯🇵 日本語' : '🇰🇷 한국어'}
+          </button>
+        </div>
+
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-[#3730A3]">Replog</h1>
-          <p className="text-sm text-slate-400 mt-2">운동 기록을 시작하세요</p>
+          <p className="text-sm text-slate-400 mt-2">{t('login.subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm px-6 py-7">
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input
-              label="이메일"
+              label={t('login.email')}
               type="text"
               placeholder="your@email.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             <Input
-              label="비밀번호"
+              label={t('login.password')}
               type="password"
               placeholder="••••••••"
               value={form.password}
@@ -83,12 +100,12 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-4 rounded-2xl bg-[#1E1B4B] text-white text-sm font-bold hover:bg-[#3730A3] transition-colors disabled:opacity-50 mt-1"
             >
-              {loading ? '로그인 중...' : '로그인'}
+              {loading ? t('login.loggingIn') : t('login.loginButton')}
             </button>
 
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-xs text-slate-400">또는</span>
+              <span className="text-xs text-slate-400">or</span>
               <div className="flex-1 h-px bg-slate-200" />
             </div>
 
@@ -102,15 +119,15 @@ export default function LoginPage() {
                 <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
                 <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.96 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
               </svg>
-              구글로 로그인
+              {t('login.googleLogin')}
             </a>
           </form>
         </div>
 
         <p className="text-center text-sm text-slate-400 mt-5">
-          계정이 없으신가요?{' '}
+          {t('login.noAccount')}{' '}
           <button onClick={() => navigate('/register')} className="text-[#3730A3] font-bold hover:underline">
-            회원가입
+            {t('login.register')}
           </button>
         </p>
 
