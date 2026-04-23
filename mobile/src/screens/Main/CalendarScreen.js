@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { getCalendar } from '../../api/workoutLogs'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import useCalendar from '../../hooks/useCalendar'
 
 const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 const MONTHS_JA = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
@@ -32,31 +31,23 @@ export default function CalendarScreen({ navigation }) {
   const { t, i18n } = useTranslation()
   const now = new Date()
   const [current, setCurrent] = useState({ year: now.getFullYear(), month: now.getMonth() })
-  const { data: calendarData } = useQuery({
-    queryKey: ['calendar', current.year, current.month],
-    queryFn: () => getCalendar(current.year, current.month + 1).then((res) => res.data),
-  })
-
-  const workoutDates = new Set(calendarData || [])
-  const sessionCount = calendarData?.length || 0
+  const { workoutDates, sessionCount } = useCalendar(current.year, current.month)
 
   const days = buildCalendar(current.year, current.month)
   const todayStr = toDateStr(now)
   const DAYS = t('calendar.days', { returnObjects: true })
-  const monthLabel = i18n.language === 'ja'
-    ? `${MONTHS_JA[current.month]} ${current.year}`
-    : `${MONTHS[current.month]} ${current.year}`
-
+  const isJa = i18n.language === 'ja'
+  const monthLabel = isJa ? `${MONTHS_JA[current.month]} ${current.year}` : `${MONTHS[current.month]} ${current.year}`
   const activityText = sessionCount > 0
-    ? (i18n.language === 'ja' ? `今月${sessionCount}回トレーニングしました` : `이번 달 ${sessionCount}회 운동했어요`)
+    ? (isJa ? `今月${sessionCount}回トレーニングしました` : `이번 달 ${sessionCount}회 운동했어요`)
     : t('calendar.noRecord')
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageLabel}>{i18n.language === 'ja' ? 'トレーニング日誌' : '운동 일지'}</Text>
-          <Text style={styles.pageTitle}>{i18n.language === 'ja' ? 'カレンダー' : '캘린더'}</Text>
+          <Text style={styles.pageLabel}>{isJa ? 'トレーニング日誌' : '운동 일지'}</Text>
+          <Text style={styles.pageTitle}>{isJa ? 'カレンダー' : '캘린더'}</Text>
         </View>
 
         <View style={styles.card}>
@@ -111,7 +102,7 @@ export default function CalendarScreen({ navigation }) {
             <Ionicons name="flash" size={20} color="#3730A3" />
           </View>
           <View>
-            <Text style={styles.streakLabel}>{i18n.language === 'ja' ? '今月の活動' : '이번 달 활동'}</Text>
+            <Text style={styles.streakLabel}>{isJa ? '今月の活動' : '이번 달 활동'}</Text>
             <Text style={styles.streakText}>{activityText}</Text>
           </View>
         </View>

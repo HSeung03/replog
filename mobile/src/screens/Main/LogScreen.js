@@ -1,13 +1,13 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../../api/workoutLogs'
-import { getExercises } from '../../api/exercises'
-import { getTemplates } from '../../api/templates'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
+import useLog from '../../hooks/useLog'
+import useExercises from '../../hooks/useExercises'
+import useTemplates from '../../hooks/useTemplates'
+import { CATEGORY_KEYS, CATEGORY_VALUES, CATEGORY_LABELS } from '../../constants/categories'
 
 const calc1RM = (weight, reps) => {
   if (reps <= 0 || reps >= 37) return null
@@ -18,7 +18,12 @@ const calc1RM = (weight, reps) => {
 export default function LogScreen({ route }) {
   const { date } = route.params
   const { t, i18n } = useTranslation()
-  const queryClient = useQueryClient()
+  const isJa = i18n.language === 'ja'
+
+  const { log, isLoading, saveLog, removeLog, addLogSet, updateLogSet, removeLogSet, removeExerciseSets } = useLog(date)
+  const { exercises } = useExercises()
+  const { templates } = useTemplates()
+
   const [memo, setMemo] = useState('')
   const [memoSaved, setMemoSaved] = useState(false)
   const [pendingExercises, setPendingExercises] = useState([])
@@ -35,55 +40,28 @@ export default function LogScreen({ route }) {
   const [deleteLogOpen, setDeleteLogOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
 
-  const { data: logData, isLoading: loading, refetch: fetchLog } = useQuery({
-    queryKey: ['log', date],
-    queryFn: async () => {
-      const res = await getLog(date)
-      if (res.status === 204) return null
-      return res.data
-    },
-  })
-  const log = logData ?? null
-
   useEffect(() => { setMemo(log?.memo || '') }, [log?.id])
 
-  const { data: exercises = [] } = useQuery({
-    queryKey: ['exercises'],
-    queryFn: () => getExercises().then((res) => res.data),
-  })
-
-  const { data: templates = [] } = useQuery({
-    queryKey: ['templates'],
-    queryFn: () => getTemplates().then((res) => res.data),
-  })
-
-  const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ['log', date] })
-
   const handleSaveMemo = async () => {
-    if (!log) await createLog({ record_date: date, memo })
-    else await updateLog(log.id, { memo })
+    await saveLog(memo)
     setMemoSaved(true)
     setTimeout(() => setMemoSaved(false), 2000)
-    invalidateLog()
   }
 
   const handleAddSet = async () => {
-    let currentLog = log
-    if (!currentLog) { const res = await createLog({ record_date: date, memo }); currentLog = res.data }
-    const currentSets = currentLog.sets?.filter((s) => s.exercise_id === Number(selectedExercise)) || []
-    await addSet(currentLog.id, { exercise_id: Number(selectedExercise), set_number: currentSets.length + 1, reps: Number(setForm.reps), weight: Number(setForm.weight) })
+    await addLogSet(Number(selectedExercise), { reps: Number(setForm.reps), weight: Number(setForm.weight) }, memo)
     setPendingExercises((prev) => prev.filter((ex) => ex.id !== Number(selectedExercise)))
-    setAddOpen(false); setSetForm({ reps: '', weight: '' }); setAddCategory('all'); invalidateLog()
+    setAddOpen(false); setSetForm({ reps: '', weight: '' }); setAddCategory('all')
   }
 
   const handleUpdateSet = async () => {
-    await updateSet(log.id, editingSet.id, { reps: Number(editForm.reps), weight: Number(editForm.weight) })
-    setEditOpen(false); setEditingSet(null); invalidateLog()
+    await updateLogSet(editingSet.id, { reps: Number(editForm.reps), weight: Number(editForm.weight) })
+    setEditOpen(false); setEditingSet(null)
   }
 
   const handleDeleteLog = async () => {
-    await deleteLog(log.id)
-    setMemo(''); setPendingExercises([]); setDeleteLogOpen(false); invalidateLog()
+    await removeLog()
+    setMemo(''); setPendingExercises([]); setDeleteLogOpen(false)
   }
 
   const handleLoadTemplate = (template) => {
@@ -102,37 +80,23 @@ export default function LogScreen({ route }) {
 
   const totalVolume = Object.values(grouped).flat().reduce((sum, s) => sum + s.weight * s.reps, 0)
   const totalSets = Object.values(grouped).flat().length
+  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString(isJa ? 'ja-JP' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
 
-  const dateObj = new Date(date + 'T00:00:00')
-  const dateLabel = dateObj.toLocaleDateString(i18n.language === 'ja' ? 'ja-JP' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
-
-  if (loading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#3730A3" /></View>
+  if (isLoading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#3730A3" /></View>
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageLabel}>{i18n.language === 'ja' ? 'トレーニング記録' : '운동 기록'}</Text>
+          <Text style={styles.pageLabel}>{isJa ? 'トレーニング記録' : '운동 기록'}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={styles.pageTitle}>{dateLabel}</Text>
-            {log && (
-              <TouchableOpacity onPress={() => setDeleteLogOpen(true)}>
-                <Text style={styles.deleteText}>{t('common.delete')}</Text>
-              </TouchableOpacity>
-            )}
+            {log && <TouchableOpacity onPress={() => setDeleteLogOpen(true)}><Text style={styles.deleteText}>{t('common.delete')}</Text></TouchableOpacity>}
           </View>
         </View>
 
         <View style={styles.card}>
-          <TextInput
-            style={styles.memo}
-            placeholder={t('log.memoPlaceholder')}
-            placeholderTextColor="#94a3b8"
-            value={memo}
-            onChangeText={setMemo}
-            multiline
-            numberOfLines={2}
-          />
+          <TextInput style={styles.memo} placeholder={t('log.memoPlaceholder')} placeholderTextColor="#94a3b8" value={memo} onChangeText={setMemo} multiline numberOfLines={2} />
 
           {memo !== (log?.memo || '') && (
             <TouchableOpacity style={[styles.saveBtn, memoSaved && styles.saveBtnSaved]} onPress={handleSaveMemo}>
@@ -148,7 +112,7 @@ export default function LogScreen({ route }) {
           )}
 
           {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
-            <Text style={styles.emptyText}>{i18n.language === 'ja' ? 'まだ記録されたトレーニングはありません。' : '아직 기록된 운동이 없습니다.'}</Text>
+            <Text style={styles.emptyText}>{isJa ? 'まだ記録されたトレーニングはありません。' : '아직 기록된 운동이 없습니다.'}</Text>
           )}
 
           {Object.entries(grouped).map(([name, sets]) => (
@@ -156,7 +120,7 @@ export default function LogScreen({ route }) {
               <View style={styles.exerciseHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={styles.exerciseName}>{name}</Text>
-                  <TouchableOpacity onPress={() => Promise.all(sets.map((s) => deleteSet(log.id, s.id))).then(fetchLog)}>
+                  <TouchableOpacity onPress={() => removeExerciseSets(sets)}>
                     <Ionicons name="trash-outline" size={13} color="#cbd5e1" />
                   </TouchableOpacity>
                 </View>
@@ -177,7 +141,7 @@ export default function LogScreen({ route }) {
                       <TouchableOpacity style={styles.iconBtn} onPress={() => { setEditingSet(set); setEditForm({ reps: String(set.reps), weight: String(set.weight) }); setEditOpen(true) }}>
                         <Ionicons name="pencil-outline" size={13} color="#94a3b8" />
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.iconBtn} onPress={() => deleteSet(log.id, set.id).then(fetchLog)}>
+                      <TouchableOpacity style={styles.iconBtn} onPress={() => removeLogSet(set.id)}>
                         <Ionicons name="trash-outline" size={13} color="#94a3b8" />
                       </TouchableOpacity>
                     </View>
@@ -208,11 +172,11 @@ export default function LogScreen({ route }) {
         {totalVolume > 0 && (
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>{i18n.language === 'ja' ? '総ボリューム' : '총 볼륨'}</Text>
+              <Text style={styles.statLabel}>{isJa ? '総ボリューム' : '총 볼륨'}</Text>
               <Text style={styles.statValue}>{totalVolume.toLocaleString()}<Text style={styles.statUnit}> kg</Text></Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>{i18n.language === 'ja' ? '総セット' : '총 세트'}</Text>
+              <Text style={styles.statLabel}>{isJa ? '総セット' : '총 세트'}</Text>
               <Text style={styles.statValue}>{totalSets}</Text>
             </View>
           </View>
@@ -233,23 +197,15 @@ export default function LogScreen({ route }) {
         {!selectedExercise && (
           <>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44 }} contentContainerStyle={{ gap: 8, paddingVertical: 4, alignItems: 'center' }}>
-              {['all', 'chest', 'back', 'legs', 'shoulders', 'arms', 'cardio'].map((key) => {
-                const labels = { all: '전체', chest: '가슴', back: '등', legs: '하체', shoulders: '어깨', arms: '팔', cardio: '유산소' }
-                const catValues = { chest: '가슴', back: '등', legs: '하체', shoulders: '어깨', arms: '팔', cardio: '유산소' }
-                return (
-                  <TouchableOpacity key={key} onPress={() => setAddCategory(key)} style={[styles.catFilterBtn, addCategory === key && styles.catFilterBtnActive]}>
-                    <Text style={[styles.catFilterText, addCategory === key && styles.catFilterTextActive]}>{labels[key]}</Text>
-                  </TouchableOpacity>
-                )
-              })}
+              {['all', ...CATEGORY_KEYS].map((key) => (
+                <TouchableOpacity key={key} onPress={() => setAddCategory(key)} style={[styles.catFilterBtn, addCategory === key && styles.catFilterBtnActive]}>
+                  <Text style={[styles.catFilterText, addCategory === key && styles.catFilterTextActive]}>{CATEGORY_LABELS[key]}</Text>
+                </TouchableOpacity>
+              ))}
             </ScrollView>
             <ScrollView style={{ maxHeight: 200, marginBottom: 4 }}>
               {exercises
-                .filter((ex) => {
-                  if (addCategory === 'all') return true
-                  const catValues = { chest: '가슴', back: '등', legs: '하체', shoulders: '어깨', arms: '팔', cardio: '유산소' }
-                  return ex.category === catValues[addCategory]
-                })
+                .filter((ex) => addCategory === 'all' || ex.category === CATEGORY_VALUES[addCategory])
                 .map((ex) => (
                   <TouchableOpacity key={ex.id} style={[styles.exItem, selectedExercise === String(ex.id) && styles.exItemSelected]} onPress={() => setSelectedExercise(String(ex.id))}>
                     <Text style={styles.exItemText}>{ex.name}</Text>
@@ -269,7 +225,7 @@ export default function LogScreen({ route }) {
       </BottomSheet>
 
       <BottomSheet visible={editOpen} onClose={() => setEditOpen(false)}>
-        <Text style={sheetStyles.title}>{editingSet?.set_number} {i18n.language === 'ja' ? 'セット編集' : '세트 수정'}</Text>
+        <Text style={sheetStyles.title}>{editingSet?.set_number} {isJa ? 'セット編集' : '세트 수정'}</Text>
         <TextInput style={sheetStyles.input} placeholder={t('log.weight')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.weight} onChangeText={(v) => setEditForm({ ...editForm, weight: v })} />
         <TextInput style={sheetStyles.input} placeholder={t('log.reps')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.reps} onChangeText={(v) => setEditForm({ ...editForm, reps: v })} />
         <View style={sheetStyles.btnRow}>
@@ -282,7 +238,7 @@ export default function LogScreen({ route }) {
 
       <BottomSheet visible={deleteLogOpen} onClose={() => setDeleteLogOpen(false)}>
         <Text style={sheetStyles.title}>{t('log.deleteLog')}</Text>
-        <Text style={styles.deleteDesc}>{i18n.language === 'ja' ? 'すべてのセット記録が削除され、復元できません。' : '모든 세트 기록이 삭제되며 복구할 수 없습니다.'}</Text>
+        <Text style={styles.deleteDesc}>{isJa ? 'すべてのセット記録が削除され、復元できません。' : '모든 세트 기록이 삭제되며 복구할 수 없습니다.'}</Text>
         <View style={sheetStyles.btnRow}>
           <TouchableOpacity style={sheetStyles.cancelBtn} onPress={() => setDeleteLogOpen(false)}><Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text></TouchableOpacity>
           <TouchableOpacity style={sheetStyles.dangerBtn} onPress={handleDeleteLog}><Text style={sheetStyles.confirmText}>{t('common.delete')}</Text></TouchableOpacity>

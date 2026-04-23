@@ -2,66 +2,39 @@ import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from '../../api/templates'
-import { getExercises } from '../../api/exercises'
 import { useTranslation } from 'react-i18next'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import ScreenHeader from '../../components/ScreenHeader'
 import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
-
-const CATEGORY_KEYS = ['chest', 'back', 'legs', 'shoulders', 'arms', 'cardio']
-const CATEGORY_VALUES = { chest: '가슴', back: '등', legs: '하체', shoulders: '어깨', arms: '팔', cardio: '유산소' }
+import useTemplates from '../../hooks/useTemplates'
+import useExercises from '../../hooks/useExercises'
+import { CATEGORY_KEYS, CATEGORY_VALUES } from '../../constants/categories'
 
 export default function TemplatesScreen({ navigation }) {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
+  const { templates, create, update, remove } = useTemplates()
+  const { exercises } = useExercises()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [name, setName] = useState('')
   const [selectedExercises, setSelectedExercises] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
 
-  const { data: templates = [] } = useQuery({
-    queryKey: ['templates'],
-    queryFn: () => getTemplates().then((res) => res.data),
-  })
-
-  const { data: exercises = [] } = useQuery({
-    queryKey: ['exercises'],
-    queryFn: () => getExercises().then((res) => res.data),
-  })
-
-  const invalidateTemplates = () => queryClient.invalidateQueries({ queryKey: ['templates'] })
-
-  const openCreate = () => {
-    setEditingTemplate(null); setName(''); setSelectedExercises([]); setSelectedCategory(''); setModalOpen(true)
-  }
-
-  const openEdit = (tmpl) => {
-    setEditingTemplate(tmpl); setName(tmpl.name); setSelectedExercises(tmpl.exercises || []); setSelectedCategory(''); setModalOpen(true)
-  }
-
-  const handleClose = () => {
-    setModalOpen(false); setEditingTemplate(null); setName(''); setSelectedExercises([]); setSelectedCategory('')
-  }
+  const openCreate = () => { setEditingTemplate(null); setName(''); setSelectedExercises([]); setSelectedCategory(''); setModalOpen(true) }
+  const openEdit = (tmpl) => { setEditingTemplate(tmpl); setName(tmpl.name); setSelectedExercises(tmpl.exercises || []); setSelectedCategory(''); setModalOpen(true) }
+  const handleClose = () => { setModalOpen(false); setEditingTemplate(null); setName(''); setSelectedExercises([]); setSelectedCategory('') }
 
   const handleSave = async () => {
     const data = { name, exercises: selectedExercises.map((ex) => ({ exercise_id: ex.id })) }
-    if (editingTemplate) await updateTemplate(editingTemplate.id, data)
-    else await createTemplate(data)
-    handleClose(); invalidateTemplates()
+    if (editingTemplate) await update(editingTemplate.id, data)
+    else await create(data)
+    handleClose()
   }
 
   const filteredExercises = exercises.filter((ex) => !selectedCategory || ex.category === CATEGORY_VALUES[selectedCategory])
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScreenHeader
-        label={t('templates.subtitle')}
-        title={t('templates.title')}
-        onBack={() => navigation.goBack()}
-        onRight={openCreate}
-      />
+      <ScreenHeader label={t('templates.subtitle')} title={t('templates.title')} onBack={() => navigation.goBack()} onRight={openCreate} />
 
       <FlatList
         data={templates}
@@ -75,7 +48,7 @@ export default function TemplatesScreen({ navigation }) {
               <Text style={styles.itemName}>{item.name}</Text>
               <Text style={styles.itemSub} numberOfLines={1}>{item.exercises?.map((ex) => ex.name).join(' · ')}</Text>
             </View>
-            <TouchableOpacity onPress={() => deleteTemplate(item.id).then(invalidateTemplates)} style={styles.deleteBtn}>
+            <TouchableOpacity onPress={() => remove(item.id)} style={styles.deleteBtn}>
               <Ionicons name="trash-outline" size={14} color="#cbd5e1" />
             </TouchableOpacity>
           </TouchableOpacity>
@@ -84,13 +57,7 @@ export default function TemplatesScreen({ navigation }) {
 
       <BottomSheet visible={modalOpen} onClose={handleClose}>
         <Text style={sheetStyles.title}>{editingTemplate ? t('templates.editTitle') : t('templates.addTitle')}</Text>
-        <TextInput
-          style={sheetStyles.input}
-          placeholder={t('templates.namePlaceholder')}
-          placeholderTextColor="#94a3b8"
-          value={name}
-          onChangeText={setName}
-        />
+        <TextInput style={sheetStyles.input} placeholder={t('templates.namePlaceholder')} placeholderTextColor="#94a3b8" value={name} onChangeText={setName} />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 8 }}>
           <TouchableOpacity onPress={() => setSelectedCategory('')} style={[styles.catBtn, !selectedCategory && styles.catBtnActive]}>
@@ -110,10 +77,7 @@ export default function TemplatesScreen({ navigation }) {
               <TouchableOpacity
                 key={ex.id}
                 style={[styles.exItem, isSelected && styles.exItemSelected]}
-                onPress={() => {
-                  if (isSelected) setSelectedExercises(selectedExercises.filter((e) => e.id !== ex.id))
-                  else setSelectedExercises([...selectedExercises, ex])
-                }}
+                onPress={() => setSelectedExercises(isSelected ? selectedExercises.filter((e) => e.id !== ex.id) : [...selectedExercises, ex])}
               >
                 <Text style={[styles.exItemText, isSelected && styles.exItemTextSelected]}>{ex.name}</Text>
                 {isSelected && <Ionicons name="close" size={12} color="#3730A3" />}
