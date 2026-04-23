@@ -1,0 +1,113 @@
+{
+  "common": {
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "add": "追加",
+    "close": "閉じる",
+    "loading": "処理中...",
+    "error": "エラーが発生しました。しばらくしてから再度お試しください。",
+    "serverError": "サーバーに接続できません。"
+  },
+  "nav": {
+    "home": "ホーム",
+    "log": "記録",
+    "profile": "プロフィール"
+  },
+  "login": {
+    "title": "おかえりなさい",
+    "subtitle": "トレーニング記録を続けましょう",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginButton": "ログイン",
+    "loggingIn": "ログイン中...",
+    "googleLogin": "Googleで続ける",
+    "noAccount": "アカウントをお持ちでないですか？",
+    "register": "新規登録",
+    "errors": {
+      "emptyFields": "メールアドレスとパスワードを入力してください。",
+      "invalidEmail": "正しいメールアドレス形式ではありません。",
+      "wrongCredentials": "メールアドレスまたはパスワードが正しくありません。",
+      "googleFailed": "Googleログインに失敗しました。もう一度お試しください。"
+    }
+  },
+  "register": {
+    "title": "始めましょう",
+    "subtitle": "トレーニング記録の第一歩",
+    "name": "名前",
+    "namePlaceholder": "山田太郎",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "passwordConfirm": "パスワード確認",
+    "registerButton": "新規登録",
+    "processing": "処理中...",
+    "haveAccount": "すでにアカウントをお持ちですか？",
+    "login": "ログイン",
+    "errors": {
+      "emptyFields": "すべての項目を入力してください。",
+      "invalidEmail": "正しいメールアドレス形式ではありません。",
+      "passwordMismatch": "パスワードが一致しません。",
+      "passwordTooShort": "パスワードは8文字以上にしてください。",
+      "validationFailed": "入力情報を確認してください。"
+    }
+  },
+  "calendar": {
+    "days": ["月", "火", "水", "木", "金", "土", "日"],
+    "noRecord": "今月の記録はありません"
+  },
+  "exercises": {
+    "title": "種目",
+    "subtitle": "もっと見る",
+    "namePlaceholder": "種目名 (例: インクラインベンチプレス)",
+    "addTitle": "種目追加",
+    "noExercises": "登録された種目はありません。",
+    "categories": {
+      "all": "全体",
+      "chest": "胸",
+      "back": "背中",
+      "legs": "脚",
+      "shoulders": "肩",
+      "arms": "腕",
+      "cardio": "有酸素"
+    }
+  },
+  "log": {
+    "memoPlaceholder": "今日のトレーニングメモ...",
+    "weight": "重量 (kg)",
+    "reps": "回数",
+    "deleteLog": "日誌削除",
+    "loadTemplate": "テンプレート読み込み",
+    "saved": "保存済 ✓",
+    "save": "保存",
+    "addSet": "セット追加",
+    "addExercise": "種目追加",
+    "unknown": "不明"
+  },
+  "more": {
+    "exercises": "トレーニング種目",
+    "exercisesDesc": "登録種目の管理",
+    "templates": "テンプレート",
+    "templatesDesc": "ルーティンテンプレートの管理",
+    "language": "言語",
+    "logout": "ログアウト",
+    "logoutDesc": "セッション終了"
+  },
+  "templates": {
+    "title": "テンプレート",
+    "subtitle": "もっと見る",
+    "noTemplates": "保存されたテンプレートはありません。",
+    "addTitle": "テンプレート追加",
+    "editTitle": "テンプレート編集",
+    "namePlaceholder": "テンプレート名 (例: 月曜日胸トレ)",
+    "categoryPlaceholder": "カテゴリ",
+    "exercisePlaceholder": "種目選択",
+    "categories": {
+      "chest": "胸",
+      "back": "背中",
+      "legs": "脚",
+      "shoulders": "肩",
+      "arms": "腕",
+      "cardio": "有酸素"
+    }
+  }
+}
