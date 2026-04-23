@@ -17,8 +17,7 @@ const calc1RM = (weight, reps) => {
 
 export default function LogScreen({ route }) {
   const { date } = route.params
-  const { t, i18n } = useTranslation()
-  const isJa = i18n.language === 'ja'
+  const { t } = useTranslation()
 
   const { log, isLoading, saveLog, removeLog, addLogSet, updateLogSet, removeLogSet, removeExerciseSets } = useLog(date)
   const { exercises } = useExercises()
@@ -80,7 +79,7 @@ export default function LogScreen({ route }) {
 
   const totalVolume = Object.values(grouped).flat().reduce((sum, s) => sum + s.weight * s.reps, 0)
   const totalSets = Object.values(grouped).flat().length
-  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString(isJa ? 'ja-JP' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
+  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
 
   if (isLoading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#3730A3" /></View>
 
@@ -88,7 +87,7 @@ export default function LogScreen({ route }) {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageLabel}>{isJa ? 'トレーニング記録' : '운동 기록'}</Text>
+          <Text style={styles.pageLabel}>{t('log.label')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={styles.pageTitle}>{dateLabel}</Text>
             {log && <TouchableOpacity onPress={() => setDeleteLogOpen(true)}><Text style={styles.deleteText}>{t('common.delete')}</Text></TouchableOpacity>}
@@ -112,7 +111,7 @@ export default function LogScreen({ route }) {
           )}
 
           {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
-            <Text style={styles.emptyText}>{isJa ? 'まだ記録されたトレーニングはありません。' : '아직 기록된 운동이 없습니다.'}</Text>
+            <Text style={styles.emptyText}>{t('log.empty')}</Text>
           )}
 
           {Object.entries(grouped).map(([name, sets]) => (
@@ -172,11 +171,11 @@ export default function LogScreen({ route }) {
         {totalVolume > 0 && (
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>{isJa ? '総ボリューム' : '총 볼륨'}</Text>
+              <Text style={styles.statLabel}>{t('log.totalVolume')}</Text>
               <Text style={styles.statValue}>{totalVolume.toLocaleString()}<Text style={styles.statUnit}> kg</Text></Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>{isJa ? '総セット' : '총 세트'}</Text>
+              <Text style={styles.statLabel}>{t('log.totalSets')}</Text>
               <Text style={styles.statValue}>{totalSets}</Text>
             </View>
           </View>
@@ -225,7 +224,7 @@ export default function LogScreen({ route }) {
       </BottomSheet>
 
       <BottomSheet visible={editOpen} onClose={() => setEditOpen(false)}>
-        <Text style={sheetStyles.title}>{editingSet?.set_number} {isJa ? 'セット編集' : '세트 수정'}</Text>
+        <Text style={sheetStyles.title}>{editingSet?.set_number} {t('log.editSet')}</Text>
         <TextInput style={sheetStyles.input} placeholder={t('log.weight')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.weight} onChangeText={(v) => setEditForm({ ...editForm, weight: v })} />
         <TextInput style={sheetStyles.input} placeholder={t('log.reps')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.reps} onChangeText={(v) => setEditForm({ ...editForm, reps: v })} />
         <View style={sheetStyles.btnRow}>
@@ -238,7 +237,7 @@ export default function LogScreen({ route }) {
 
       <BottomSheet visible={deleteLogOpen} onClose={() => setDeleteLogOpen(false)}>
         <Text style={sheetStyles.title}>{t('log.deleteLog')}</Text>
-        <Text style={styles.deleteDesc}>{isJa ? 'すべてのセット記録が削除され、復元できません。' : '모든 세트 기록이 삭제되며 복구할 수 없습니다.'}</Text>
+        <Text style={styles.deleteDesc}>{t('log.deleteDesc')}</Text>
         <View style={sheetStyles.btnRow}>
           <TouchableOpacity style={sheetStyles.cancelBtn} onPress={() => setDeleteLogOpen(false)}><Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text></TouchableOpacity>
           <TouchableOpacity style={sheetStyles.dangerBtn} onPress={handleDeleteLog}><Text style={sheetStyles.confirmText}>{t('common.delete')}</Text></TouchableOpacity>

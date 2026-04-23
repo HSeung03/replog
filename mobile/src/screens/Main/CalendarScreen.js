@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import useCalendar from '../../hooks/useCalendar'
 
 const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
-const MONTHS_JA = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
 
 function buildCalendar(year, month) {
   const firstDay = new Date(year, month, 1)
@@ -28,7 +27,7 @@ function toDateStr(date) {
 }
 
 export default function CalendarScreen({ navigation }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const now = new Date()
   const [current, setCurrent] = useState({ year: now.getFullYear(), month: now.getMonth() })
   const { workoutDates, sessionCount } = useCalendar(current.year, current.month)
@@ -36,18 +35,15 @@ export default function CalendarScreen({ navigation }) {
   const days = buildCalendar(current.year, current.month)
   const todayStr = toDateStr(now)
   const DAYS = t('calendar.days', { returnObjects: true })
-  const isJa = i18n.language === 'ja'
-  const monthLabel = isJa ? `${MONTHS_JA[current.month]} ${current.year}` : `${MONTHS[current.month]} ${current.year}`
-  const activityText = sessionCount > 0
-    ? (isJa ? `今月${sessionCount}回トレーニングしました` : `이번 달 ${sessionCount}회 운동했어요`)
-    : t('calendar.noRecord')
+  const monthLabel = `${MONTHS[current.month]} ${current.year}`
+  const activityText = sessionCount > 0 ? `이번 달 ${sessionCount}회 운동했어요` : t('calendar.noRecord')
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageLabel}>{isJa ? 'トレーニング日誌' : '운동 일지'}</Text>
-          <Text style={styles.pageTitle}>{isJa ? 'カレンダー' : '캘린더'}</Text>
+          <Text style={styles.pageLabel}>{t('calendar.label')}</Text>
+          <Text style={styles.pageTitle}>{t('calendar.title')}</Text>
         </View>
 
         <View style={styles.card}>
@@ -102,7 +98,7 @@ export default function CalendarScreen({ navigation }) {
             <Ionicons name="flash" size={20} color="#3730A3" />
           </View>
           <View>
-            <Text style={styles.streakLabel}>{isJa ? '今月の活動' : '이번 달 활동'}</Text>
+            <Text style={styles.streakLabel}>{t('calendar.monthlyActivity')}</Text>
             <Text style={styles.streakText}>{activityText}</Text>
           </View>
         </View>

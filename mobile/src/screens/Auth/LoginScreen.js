@@ -3,20 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator,
 import { useAuth } from '../../contexts/AuthContext'
 import { login as loginApi } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  const toggleLang = async () => {
-    const next = i18n.language === 'ko' ? 'ja' : 'ko'
-    i18n.changeLanguage(next)
-    await AsyncStorage.setItem('lang', next)
-  }
 
   const handleSubmit = async () => {
     setError('')
@@ -38,10 +31,6 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <TouchableOpacity style={styles.langBtn} onPress={toggleLang}>
-        <Text style={styles.langText}>{i18n.language === 'ko' ? '🇯🇵 日本語' : '🇰🇷 한국어'}</Text>
-      </TouchableOpacity>
-
       <View style={styles.header}>
         <Text style={styles.logo}>Replog</Text>
         <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
@@ -84,8 +73,6 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  langBtn: { position: 'absolute', top: 60, right: 24, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  langText: { fontSize: 12, fontWeight: '700', color: '#475569' },
   header: { alignItems: 'center', marginBottom: 32 },
   logo: { fontSize: 36, fontWeight: '800', color: '#3730A3' },
   subtitle: { fontSize: 14, color: '#94a3b8', marginTop: 6 },
