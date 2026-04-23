@@ -6,9 +6,11 @@
 
 ## 프로젝트 소개
 
-헬스장에서 했던 운동을 날짜별로 기록하고, 세트/무게/횟수를 추적하며 성장을 시각적으로 확인하는 웹 앱입니다.
+헬스장에서 했던 운동을 날짜별로 기록하고, 세트/무게/횟수를 추적하며 성장을 시각적으로 확인하는 운동 기록 앱입니다.
 
 기존 프로젝트에서 운동 결과를 JSON 컬럼에 통째로 저장하던 방식을 정규화된 테이블 구조로 개선하여, 세트별 조회/수정/삭제 및 1RM 계산이 가능하도록 재설계했습니다.
+
+웹(PWA)과 모바일(React Native) 두 가지 클라이언트를 동일한 REST API 백엔드로 운영합니다.
 
 <br/>
 
@@ -19,21 +21,31 @@
 |------|----------|
 | Laravel 13 | 인증(Sanctum), ORM(Eloquent), 라우팅 등 기본 제공이 풍부해 빠른 개발 가능 |
 | MySQL | 정규화된 관계형 데이터 구조에 적합 |
-| Laravel Sanctum | SPA 환경에서 쿠키 기반 인증으로 XSS 취약점 최소화 |
-| Laravel Sail | Docker 기반 개발 환경 — 환경 차이 없이 일관된 실행 보장 |
+| Laravel Sanctum | SPA 환경에서 토큰 기반 인증 |
+| Laravel Socialite | Google OAuth 소셜 로그인 |
+| Railway | 백엔드 및 DB 클라우드 배포 |
 
-### Frontend
+### Frontend (Web PWA)
 | 기술 | 선택 이유 |
 |------|----------|
-| React + Vite | 컴포넌트 기반 UI, 빠른 개발 서버 |
-| MUI (Material UI) | 이미 만들어진 컴포넌트로 개발 속도 확보, 반응형 기본 지원 |
-| FullCalendar | 날짜 클릭/이벤트 표시에 특화된 캘린더 라이브러리 |
-| Recharts | 신체 기록 추이 그래프 시각화 |
-| axios | CSRF 토큰 자동 처리, 인터셉터 활용 |
+| React 19 + Vite | 컴포넌트 기반 UI, 빠른 개발 서버 |
+| Tailwind CSS v4 | 유틸리티 클래스 기반 빠른 스타일링 |
+| React Router v7 | SPA 클라이언트 라우팅 |
+| lucide-react | 경량 아이콘 라이브러리 |
+| axios | API 호출 및 인터셉터 활용 |
+| react-i18next | 한국어 / 일본어 다국어 지원 |
+| vite-plugin-pwa | PWA 지원 (오프라인 캐싱, 홈 화면 추가) |
 
-### 모바일 대응
-네이티브 앱(React Native/Flutter) 대신 **반응형 웹**을 선택했습니다.
-이 프로젝트의 목적은 REST API 설계와 React 구현 능력을 보여주는 것이며, 기간 내 완성도를 높이기 위해 하나의 코드베이스로 PC/모바일 모두 대응하는 방식을 선택했습니다.
+### Mobile (React Native)
+| 기술 | 선택 이유 |
+|------|----------|
+| React Native + Expo SDK 54 | 크로스플랫폼 네이티브 앱 |
+| React Navigation v7 | 스택 / 탭 네비게이션 |
+| @tanstack/react-query | API 응답 캐싱 및 중복 요청 제거 |
+| @expo/vector-icons (Ionicons) | 네이티브 아이콘 |
+| react-i18next | 한국어 / 일본어 다국어 지원 |
+| AsyncStorage | 토큰 로컬 저장 |
+| axios | API 호출 |
 
 <br/>
 
@@ -45,6 +57,8 @@
 - 🏆 **1RM 챌린지** — 벤치프레스 / 스쿼트 / 데드리프트 최대 1RM 추적 (Brzycki 공식)
 - 📊 **신체 기록 그래프** — 몸무게 / 근육량 / 체지방률 추이 시각화
 - 🔧 **운동 종목 관리** — 기본 제공 32개 종목 + 커스텀 종목 추가
+- 🌐 **다국어 지원** — 한국어 / 일본어
+- 🔑 **소셜 로그인** — Google OAuth
 
 <br/>
 
@@ -141,18 +155,19 @@ erDiagram
 ## 실행 방법
 
 ### 사전 요구사항
-- Docker Desktop
 - Node.js 18+
+- PHP 8.4+ / Composer
 
 ### Backend
 ```bash
 cd backend
 cp .env.example .env
-./vendor/bin/sail up -d
-./vendor/bin/sail artisan migrate:fresh --seed
+composer install
+php artisan migrate:fresh --seed
+php artisan serve
 ```
 
-### Frontend
+### Frontend (Web)
 ```bash
 cd frontend
 npm install
@@ -160,6 +175,15 @@ npm run dev
 ```
 
 브라우저에서 `http://localhost:5173` 접속
+
+### Mobile
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+Expo Go 앱 또는 iOS 시뮬레이터에서 실행
 
 <br/>
 
@@ -175,12 +199,20 @@ replog/
 │   │   ├── migrations/       테이블 정의
 │   │   └── seeders/          기본 운동 종목 32개
 │   └── routes/api.php        API 엔드포인트
-└── frontend/                 React + Vite
+├── frontend/                 React + Vite (PWA)
+│   └── src/
+│       ├── api/              axios 기반 API 호출 함수
+│       ├── contexts/         전역 상태 (인증)
+│       ├── components/       공통 컴포넌트
+│       └── pages/            페이지별 컴포넌트
+└── mobile/                   React Native + Expo
     └── src/
         ├── api/              axios 기반 API 호출 함수
+        ├── components/       공통 컴포넌트 (ScreenHeader, BottomSheet)
         ├── contexts/         전역 상태 (인증)
-        ├── components/       공통 컴포넌트
-        └── pages/            페이지별 컴포넌트
+        ├── i18n/             다국어 리소스 (ko, ja)
+        ├── navigation/       네비게이션 구성
+        └── screens/          화면별 컴포넌트
 ```
 
 <br/>
@@ -205,8 +237,8 @@ replog/
 ## 개선 예정
 
 - [ ] 이전 기록 불러오기 (같은 종목의 직전 세트 자동 표시)
-- [ ] 템플릿 적용으로 운동 시작
 - [ ] 운동 통계 페이지
+- [ ] Android 빌드 대응
 
 <br/>
 
