@@ -10,7 +10,7 @@ export default function MoreScreen({ navigation }) {
   const { t } = useTranslation()
 
   const handleLogout = async () => {
-    await logout()
+    try { await logout() } catch {}
     logoutAuth()
   }
 

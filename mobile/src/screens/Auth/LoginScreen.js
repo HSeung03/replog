@@ -1,8 +1,16 @@
-import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
+import { useState, useEffect } from 'react'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import * as WebBrowser from 'expo-web-browser'
+import * as Google from 'expo-auth-session/providers/google'
 import { useAuth } from '../../contexts/AuthContext'
-import { login as loginApi } from '../../api/auth'
+import { login as loginApi, googleLogin as googleLoginApi } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
+
+WebBrowser.maybeCompleteAuthSession()
+
+const ANDROID_CLIENT_ID = '233986109518-njjqritu83q9vmgkn0894rfoh0dfeq7r.apps.googleusercontent.com'
+const IOS_CLIENT_ID = '233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt.apps.googleusercontent.com'
+const REDIRECT_URI = 'com.googleusercontent.apps.233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt:/oauth2redirect'
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth()
@@ -10,6 +18,37 @@ export default function LoginScreen({ navigation }) {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  const [, response, promptAsync] = Google.useAuthRequest({
+    clientId: '233986109518-0qdfufi0hbimij82u8pifulsvb5k7a5f.apps.googleusercontent.com',
+    androidClientId: ANDROID_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,
+    redirectUri: REDIRECT_URI,
+  })
+
+  useEffect(() => {
+    console.log('Google response:', JSON.stringify(response))
+    if (response?.type === 'success') {
+      const { id_token } = response.params
+      console.log('id_token:', id_token)
+      handleGoogleToken(id_token)
+    }
+  }, [response])
+
+  const handleGoogleToken = async (idToken) => {
+    setGoogleLoading(true)
+    setError('')
+    try {
+      const res = await googleLoginApi(idToken)
+      login(res.data.token, res.data.user)
+    } catch (e) {
+      console.log('Google login error:', e?.response?.data, e?.message)
+      setError('구글 로그인에 실패했습니다.')
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
 
   const handleSubmit = async () => {
     setError('')
@@ -64,6 +103,21 @@ export default function LoginScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>또는</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <TouchableOpacity style={styles.googleBtn} onPress={() => promptAsync()} disabled={googleLoading}>
+        {googleLoading ? <ActivityIndicator color="#334155" /> : (
+          <View style={styles.googleBtnInner}>
+            <Image source={require('../../../assets/google-logo.png')} style={styles.googleLogo} />
+            <Text style={styles.googleBtnText}>Google로 로그인</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
         <Text style={styles.link}>{t('login.noAccount')} <Text style={styles.linkBold}>{t('login.register')}</Text></Text>
       </TouchableOpacity>
@@ -82,6 +136,13 @@ const styles = StyleSheet.create({
   error: { fontSize: 12, color: '#ef4444', textAlign: 'center', marginTop: 8 },
   btn: { backgroundColor: '#1E1B4B', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
   btnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
+  dividerText: { marginHorizontal: 12, fontSize: 12, color: '#94a3b8' },
+  googleBtn: { width: '100%', backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  googleBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  googleLogo: { width: 20, height: 20 },
+  googleBtnText: { fontSize: 14, fontWeight: '700', color: '#334155' },
   link: { marginTop: 20, fontSize: 13, color: '#94a3b8' },
   linkBold: { color: '#3730A3', fontWeight: '700' },
 })
