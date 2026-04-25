@@ -8,6 +8,8 @@ class Exercise extends Model
 {
     protected $fillable = ['name', 'category', 'is_default', 'user_id'];
 
+    protected $casts = ['is_default' => 'boolean'];
+
     // 이 종목으로 기록된 세트들
     public function workoutSets()
     {

@@ -61,7 +61,7 @@ class WorkoutLogController extends Controller
     // 메모 수정
     public function update(Request $request, WorkoutLog $workoutLog)
     {
-        if ($workoutLog->user_id !== $request->user()->id) {
+        if ($workoutLog->user_id != $request->user()->id) {
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
@@ -75,7 +75,7 @@ class WorkoutLogController extends Controller
     // 일지 삭제 (세트도 cascade로 자동 삭제)
     public function destroy(Request $request, WorkoutLog $workoutLog)
     {
-        if ($workoutLog->user_id !== $request->user()->id) {
+        if ($workoutLog->user_id != $request->user()->id) {
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
@@ -87,7 +87,7 @@ class WorkoutLogController extends Controller
     // 세트 추가
     public function addSet(Request $request, WorkoutLog $workoutLog)
     {
-        if ($workoutLog->user_id !== $request->user()->id) {
+        if ($workoutLog->user_id != $request->user()->id) {
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
@@ -112,7 +112,7 @@ class WorkoutLogController extends Controller
     // 세트 수정
     public function updateSet(Request $request, WorkoutLog $workoutLog, WorkoutSet $set)
     {
-        if ($workoutLog->user_id !== $request->user()->id) {
+        if ($workoutLog->user_id != $request->user()->id) {
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
@@ -129,7 +129,7 @@ class WorkoutLogController extends Controller
     // 세트 삭제
     public function deleteSet(Request $request, WorkoutLog $workoutLog, WorkoutSet $set)
     {
-        if ($workoutLog->user_id !== $request->user()->id) {
+        if ($workoutLog->user_id != $request->user()->id) {
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
