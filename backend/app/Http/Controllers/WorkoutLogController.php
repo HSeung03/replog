@@ -133,7 +133,16 @@ class WorkoutLogController extends Controller
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
+        $exerciseId = $set->exercise_id;
         $set->delete();
+
+        WorkoutSet::where('workout_log_id', $workoutLog->id)
+            ->where('exercise_id', $exerciseId)
+            ->orderBy('set_number')
+            ->get()
+            ->each(function ($s, $index) {
+                $s->update(['set_number' => $index + 1]);
+            });
 
         return response()->json(['message' => '삭제되었습니다.']);
     }

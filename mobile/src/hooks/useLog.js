@@ -25,14 +25,13 @@ export default function useLog(date) {
   const ensureLog = async (memo) => {
     if (log) return log
     const res = await createLog({ record_date: date, memo })
-    invalidate()
     return res.data
   }
 
   const addLogSet = async (exerciseId, setData, memo) => {
     const current = await ensureLog(memo)
-    const currentSets = current.sets?.filter((s) => s.exercise_id === exerciseId) || []
-    await addSet(current.id, { exercise_id: exerciseId, set_number: currentSets.length + 1, ...setData })
+    const existingSets = log?.sets?.filter((s) => s.exercise_id === exerciseId) || []
+    await addSet(current.id, { exercise_id: exerciseId, set_number: existingSets.length + 1, ...setData })
     invalidate()
   }
 

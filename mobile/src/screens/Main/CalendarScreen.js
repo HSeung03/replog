@@ -12,7 +12,7 @@ function buildCalendar(year, month) {
   const lastDay = new Date(year, month + 1, 0)
   const startDow = (firstDay.getDay() + 6) % 7
   const days = []
-  for (let i = startDow - 1; i >= 0; i--) days.push({ date: new Date(year, month, -i), current: false })
+  for (let i = startDow; i > 0; i--) days.push({ date: new Date(year, month, 1 - i), current: false })
   for (let i = 1; i <= lastDay.getDate(); i++) days.push({ date: new Date(year, month, i), current: true })
   const remaining = days.length % 7 === 0 ? 0 : 7 - (days.length % 7)
   for (let i = 1; i <= remaining; i++) days.push({ date: new Date(year, month + 1, i), current: false })

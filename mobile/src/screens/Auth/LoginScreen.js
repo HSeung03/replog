@@ -28,10 +28,8 @@ export default function LoginScreen({ navigation }) {
   })
 
   useEffect(() => {
-    console.log('Google response:', JSON.stringify(response))
     if (response?.type === 'success') {
       const { id_token } = response.params
-      console.log('id_token:', id_token)
       handleGoogleToken(id_token)
     }
   }, [response])
@@ -42,8 +40,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const res = await googleLoginApi(idToken)
       login(res.data.token, res.data.user)
-    } catch (e) {
-      console.log('Google login error:', e?.response?.data, e?.message)
+    } catch {
       setError('구글 로그인에 실패했습니다.')
     } finally {
       setGoogleLoading(false)
