@@ -1,16 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
-import * as WebBrowser from 'expo-web-browser'
-import * as Google from 'expo-auth-session/providers/google'
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { useAuth } from '../../contexts/AuthContext'
 import { login as loginApi, googleLogin as googleLoginApi } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
 
-WebBrowser.maybeCompleteAuthSession()
-
-const ANDROID_CLIENT_ID = '233986109518-njjqritu83q9vmgkn0894rfoh0dfeq7r.apps.googleusercontent.com'
-const IOS_CLIENT_ID = '233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt.apps.googleusercontent.com'
-const REDIRECT_URI = 'com.googleusercontent.apps.233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt:/oauth2redirect'
+GoogleSignin.configure({
+  iosClientId: '233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt.apps.googleusercontent.com',
+  webClientId: '233986109518-0qdfufi0hbimij82u8pifulsvb5k7a5f.apps.googleusercontent.com',
+})
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth()
@@ -20,27 +18,18 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
-  const [, response, promptAsync] = Google.useAuthRequest({
-    clientId: '233986109518-0qdfufi0hbimij82u8pifulsvb5k7a5f.apps.googleusercontent.com',
-    androidClientId: ANDROID_CLIENT_ID,
-    iosClientId: IOS_CLIENT_ID,
-    redirectUri: REDIRECT_URI,
-  })
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params
-      handleGoogleToken(id_token)
-    }
-  }, [response])
-
-  const handleGoogleToken = async (idToken) => {
+  const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     setError('')
     try {
+      await GoogleSignin.hasPlayServices()
+      const userInfo = await GoogleSignin.signIn()
+      const idToken = userInfo.data?.idToken
+      if (!idToken) throw new Error('No id_token')
       const res = await googleLoginApi(idToken)
       login(res.data.token, res.data.user)
-    } catch {
+    } catch (e) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return
       setError('구글 로그인에 실패했습니다.')
     } finally {
       setGoogleLoading(false)
@@ -106,7 +95,7 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.dividerLine} />
       </View>
 
-      <TouchableOpacity style={styles.googleBtn} onPress={() => promptAsync()} disabled={googleLoading}>
+      <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
         {googleLoading ? <ActivityIndicator color="#334155" /> : (
           <View style={styles.googleBtnInner}>
             <Image source={require('../../../assets/google-logo.png')} style={styles.googleLogo} />

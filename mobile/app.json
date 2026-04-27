@@ -2,7 +2,7 @@
   "expo": {
     "name": "mobile",
     "slug": "mobile",
-    "scheme": "com.googleusercontent.apps.233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt",
+    "scheme": "com.lsh.replog",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,7 +29,12 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
-    ]
+      "@react-native-google-signin/google-signin"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8217c6bb-33e2-4d66-9e92-2572f109397b"
+      }
+    }
   }
 }
