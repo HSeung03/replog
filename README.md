@@ -10,7 +10,7 @@
 
 기존 프로젝트에서 운동 결과를 JSON 컬럼에 통째로 저장하던 방식을 정규화된 테이블 구조로 개선하여, 세트별 조회/수정/삭제 및 1RM 계산이 가능하도록 재설계했습니다.
 
-웹(PWA)과 모바일(React Native) 두 가지 클라이언트를 동일한 REST API 백엔드로 운영합니다.
+React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성됩니다.
 
 <br/>
 
@@ -24,17 +24,6 @@
 | Laravel Sanctum | SPA 환경에서 토큰 기반 인증 |
 | Laravel Socialite | Google OAuth 소셜 로그인 |
 | Railway | 백엔드 및 DB 클라우드 배포 |
-
-### Frontend (Web PWA)
-| 기술 | 선택 이유 |
-|------|----------|
-| React 19 + Vite | 컴포넌트 기반 UI, 빠른 개발 서버 |
-| Tailwind CSS v4 | 유틸리티 클래스 기반 빠른 스타일링 |
-| React Router v7 | SPA 클라이언트 라우팅 |
-| lucide-react | 경량 아이콘 라이브러리 |
-| axios | API 호출 및 인터셉터 활용 |
-| react-i18next | 한국어 / 일본어 다국어 지원 |
-| vite-plugin-pwa | PWA 지원 (오프라인 캐싱, 홈 화면 추가) |
 
 ### Mobile (React Native)
 | 기술 | 선택 이유 |
@@ -167,15 +156,6 @@ php artisan migrate:fresh --seed
 php artisan serve
 ```
 
-### Frontend (Web)
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-브라우저에서 `http://localhost:5173` 접속
-
 ### Mobile
 ```bash
 cd mobile
@@ -199,12 +179,6 @@ replog/
 │   │   ├── migrations/       테이블 정의
 │   │   └── seeders/          기본 운동 종목 32개
 │   └── routes/api.php        API 엔드포인트
-├── frontend/                 React + Vite (PWA)
-│   └── src/
-│       ├── api/              axios 기반 API 호출 함수
-│       ├── contexts/         전역 상태 (인증)
-│       ├── components/       공통 컴포넌트
-│       └── pages/            페이지별 컴포넌트
 └── mobile/                   React Native + Expo
     └── src/
         ├── api/              axios 기반 API 호출 함수

@@ -4,27 +4,19 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext'
 import { logout } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 export default function MoreScreen({ navigation }) {
   const { user, logout: logoutAuth } = useAuth()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const handleLogout = async () => {
-    await logout()
+    try { await logout() } catch {}
     logoutAuth()
-  }
-
-  const toggleLang = async () => {
-    const next = i18n.language === 'ko' ? 'ja' : 'ko'
-    i18n.changeLanguage(next)
-    await AsyncStorage.setItem('lang', next)
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{user?.name?.[0]?.toUpperCase()}</Text>
@@ -52,17 +44,6 @@ export default function MoreScreen({ navigation }) {
               <Text style={styles.menuDesc}>{t('more.templatesDesc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity style={styles.menuItem} onPress={toggleLang}>
-            <View style={styles.menuIcon}><Ionicons name="language" size={18} color="#3730A3" /></View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitle}>{t('more.language')}</Text>
-              <Text style={styles.menuDesc}>{i18n.language === 'ko' ? '한국어' : '日本語'}</Text>
-            </View>
-            <Text style={styles.langSwitch}>{i18n.language === 'ko' ? '🇯🇵 日本語' : '🇰🇷 한국어'}</Text>
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -99,7 +80,6 @@ const styles = StyleSheet.create({
   menuDesc: { fontSize: 11, fontWeight: '600', color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   menuTitleRed: { fontSize: 14, fontWeight: '700', color: '#ef4444' },
   menuDescRed: { fontSize: 11, fontWeight: '600', color: '#fca5a5', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  langSwitch: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   divider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 20 },
   version: { textAlign: 'center', fontSize: 10, fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 2, paddingVertical: 8 },
 })

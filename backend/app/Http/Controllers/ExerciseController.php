@@ -40,7 +40,7 @@ class ExerciseController extends Controller
     // 커스텀 종목 삭제 (본인 종목만)
     public function destroy(Request $request, Exercise $exercise)
     {
-        if ($exercise->is_default || $exercise->user_id !== $request->user()->id) {
+        if ($exercise->is_default || $exercise->user_id != $request->user()->id) {
             return response()->json(['message' => '삭제할 수 없는 종목입니다.'], 403);
         }
 

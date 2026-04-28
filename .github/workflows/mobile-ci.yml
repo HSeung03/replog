@@ -1,0 +1,33 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [dev, master]
+    paths:
+      - 'mobile/**'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'mobile/**'
+
+jobs:
+  check:
+    name: Install & Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Check Expo config
+        working-directory: mobile
+        run: npx expo config --type introspect

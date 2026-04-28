@@ -1,21 +1,40 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 import { useAuth } from '../../contexts/AuthContext'
-import { login as loginApi } from '../../api/auth'
+import { login as loginApi, googleLogin as googleLoginApi } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+
+GoogleSignin.configure({
+  iosClientId: '233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt.apps.googleusercontent.com',
+  androidClientId: '233986109518-njjqritu83q9vmgkn0894rfoh0dfeq7r.apps.googleusercontent.com',
+  webClientId: '233986109518-0qdfufi0hbimij82u8pifulsvb5k7a5f.apps.googleusercontent.com',
+})
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
-  const toggleLang = async () => {
-    const next = i18n.language === 'ko' ? 'ja' : 'ko'
-    i18n.changeLanguage(next)
-    await AsyncStorage.setItem('lang', next)
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true)
+    setError('')
+    try {
+      await GoogleSignin.hasPlayServices()
+      const userInfo = await GoogleSignin.signIn()
+      const idToken = userInfo.data?.idToken
+      if (!idToken) throw new Error('No id_token')
+      const res = await googleLoginApi(idToken)
+      login(res.data.token, res.data.user)
+    } catch (e) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return
+      setError('구글 로그인에 실패했습니다.')
+    } finally {
+      setGoogleLoading(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -38,10 +57,6 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <TouchableOpacity style={styles.langBtn} onPress={toggleLang}>
-        <Text style={styles.langText}>{i18n.language === 'ko' ? '🇯🇵 日本語' : '🇰🇷 한국어'}</Text>
-      </TouchableOpacity>
-
       <View style={styles.header}>
         <Text style={styles.logo}>Replog</Text>
         <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
@@ -75,6 +90,21 @@ export default function LoginScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>또는</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
+        {googleLoading ? <ActivityIndicator color="#334155" /> : (
+          <View style={styles.googleBtnInner}>
+            <Image source={require('../../../assets/google-logo.png')} style={styles.googleLogo} />
+            <Text style={styles.googleBtnText}>Google로 로그인</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
         <Text style={styles.link}>{t('login.noAccount')} <Text style={styles.linkBold}>{t('login.register')}</Text></Text>
       </TouchableOpacity>
@@ -84,8 +114,6 @@ export default function LoginScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  langBtn: { position: 'absolute', top: 60, right: 24, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  langText: { fontSize: 12, fontWeight: '700', color: '#475569' },
   header: { alignItems: 'center', marginBottom: 32 },
   logo: { fontSize: 36, fontWeight: '800', color: '#3730A3' },
   subtitle: { fontSize: 14, color: '#94a3b8', marginTop: 6 },
@@ -95,6 +123,13 @@ const styles = StyleSheet.create({
   error: { fontSize: 12, color: '#ef4444', textAlign: 'center', marginTop: 8 },
   btn: { backgroundColor: '#1E1B4B', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
   btnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
+  dividerText: { marginHorizontal: 12, fontSize: 12, color: '#94a3b8' },
+  googleBtn: { width: '100%', backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  googleBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  googleLogo: { width: 20, height: 20 },
+  googleBtnText: { fontSize: 14, fontWeight: '700', color: '#334155' },
   link: { marginTop: 20, fontSize: 13, color: '#94a3b8' },
   linkBold: { color: '#3730A3', fontWeight: '700' },
 })

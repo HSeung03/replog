@@ -73,6 +73,42 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 
+    // 모바일 구글 로그인 (id_token 방식)
+    public function googleLogin(Request $request)
+    {
+        $request->validate(['id_token' => 'required|string']);
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::get('https://oauth2.googleapis.com/tokeninfo', [
+                'id_token' => $request->id_token,
+            ]);
+
+            if (!$response->ok()) {
+                return response()->json(['message' => '구글 로그인 실패'], 401);
+            }
+
+            $googleUser = $response->json();
+
+            $user = User::updateOrCreate(
+                ['google_id' => $googleUser['sub']],
+                [
+                    'name'  => $googleUser['name'] ?? $googleUser['email'],
+                    'email' => $googleUser['email'],
+                ]
+            );
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'message' => '로그인 성공',
+                'token'   => $token,
+                'user'    => $user,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => '구글 로그인 실패'], 401);
+        }
+    }
+
     // 구글 OAuth 리다이렉트
     public function googleRedirect()
     {
