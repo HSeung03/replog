@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 GoogleSignin.configure({
   iosClientId: '233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt.apps.googleusercontent.com',
+  androidClientId: '233986109518-njjqritu83q9vmgkn0894rfoh0dfeq7r.apps.googleusercontent.com',
   webClientId: '233986109518-0qdfufi0hbimij82u8pifulsvb5k7a5f.apps.googleusercontent.com',
 })
 
