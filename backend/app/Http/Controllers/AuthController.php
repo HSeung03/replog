@@ -79,15 +79,21 @@ class AuthController extends Controller
         $request->validate(['id_token' => 'required|string']);
 
         try {
-            $response = \Illuminate\Support\Facades\Http::get('https://oauth2.googleapis.com/tokeninfo', [
+            // tokeninfo API로 검증 (Android/iOS 네이티브 토큰 모두 지원)
+            $response = \Illuminate\Support\Facades\Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
                 'id_token' => $request->id_token,
             ]);
 
             if (!$response->ok()) {
+                \Illuminate\Support\Facades\Log::error('Google tokeninfo failed', ['status' => $response->status(), 'body' => $response->body()]);
                 return response()->json(['message' => '구글 로그인 실패'], 401);
             }
 
             $googleUser = $response->json();
+
+            if (empty($googleUser['sub']) || empty($googleUser['email'])) {
+                return response()->json(['message' => '구글 로그인 실패'], 401);
+            }
 
             $user = User::updateOrCreate(
                 ['google_id' => $googleUser['sub']],
@@ -105,6 +111,7 @@ class AuthController extends Controller
                 'user'    => $user,
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Google login exception', ['message' => $e->getMessage()]);
             return response()->json(['message' => '구글 로그인 실패'], 401);
         }
     }
