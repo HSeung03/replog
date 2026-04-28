@@ -95,13 +95,16 @@ class AuthController extends Controller
                 return response()->json(['message' => '구글 로그인 실패'], 401);
             }
 
-            $user = User::updateOrCreate(
-                ['google_id' => $googleUser['sub']],
-                [
-                    'name'  => $googleUser['name'] ?? $googleUser['email'],
-                    'email' => $googleUser['email'],
-                ]
-            );
+            $user = User::where('email', $googleUser['email'])->first();
+            if ($user) {
+                $user->update(['google_id' => $googleUser['sub']]);
+            } else {
+                $user = User::create([
+                    'google_id' => $googleUser['sub'],
+                    'name'      => $googleUser['name'] ?? $googleUser['email'],
+                    'email'     => $googleUser['email'],
+                ]);
+            }
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
