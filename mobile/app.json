@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Replog",
-    "slug": "replog",
+    "slug": "mobile",
     "scheme": "com.lsh.replog",
     "version": "1.0.0",
     "orientation": "portrait",
