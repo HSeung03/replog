@@ -1,5 +1,7 @@
 # Replog
 
+**[한국어](./README.md) | [日本語](./README.ja.md)**
+
 > 나만의 운동 기록 일지 — 기존 프로젝트(fit-log-laravel)의 구조적 한계를 개선한 리뉴얼 버전
 
 <br/>
