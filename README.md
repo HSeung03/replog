@@ -37,13 +37,6 @@ React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, 
 | AsyncStorage | 토큰 로컬 저장 |
 | axios | API 호출 및 인증 인터셉터 |
 
-### CI/CD
-| 기술 | 설명 |
-|------|------|
-| GitHub Actions | PR마다 백엔드 Feature 테스트 자동 실행, 모바일 의존성 검사 |
-| EAS Build | 클라우드 Android APK 빌드 |
-| Railway | GitHub push 감지 자동 재배포 |
-
 <br/>
 
 ## 주요 기능
@@ -154,9 +147,6 @@ erDiagram
 
 ```
 replog/
-├── .github/workflows/
-│   ├── backend-ci.yml        Laravel Feature 테스트 자동화
-│   └── mobile-ci.yml         Expo 의존성 및 설정 검사
 ├── backend/                  Laravel 13 REST API
 │   ├── app/
 │   │   ├── Http/Controllers/ 각 도메인별 컨트롤러
