@@ -4,10 +4,15 @@ import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext'
 import { logout } from '../../api/auth'
 import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
 
 export default function MoreScreen({ navigation }) {
   const { user, logout: logoutAuth } = useAuth()
   const { t } = useTranslation()
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === 'ko' ? 'ja' : 'ko')
+  }
 
   const handleLogout = async () => {
     try { await logout() } catch {}
@@ -48,6 +53,19 @@ export default function MoreScreen({ navigation }) {
 
           <View style={styles.divider} />
 
+          <TouchableOpacity style={styles.menuItem} onPress={toggleLanguage}>
+            <View style={styles.menuIcon}><Ionicons name="language" size={18} color="#3730A3" /></View>
+            <View style={styles.menuText}>
+              <Text style={styles.menuTitle}>{t('more.language')}</Text>
+              <Text style={styles.menuDesc}>{t('more.languageDesc')}</Text>
+            </View>
+            <View style={styles.langBadge}>
+              <Text style={styles.langBadgeText}>{i18n.language === 'ko' ? '한국어' : '日本語'}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
           <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
             <View style={[styles.menuIcon, styles.menuIconRed]}><Ionicons name="log-out-outline" size={18} color="#ef4444" /></View>
             <View style={styles.menuText}>
@@ -81,5 +99,7 @@ const styles = StyleSheet.create({
   menuTitleRed: { fontSize: 14, fontWeight: '700', color: '#ef4444' },
   menuDescRed: { fontSize: 11, fontWeight: '600', color: '#fca5a5', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   divider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 20 },
+  langBadge: { backgroundColor: '#eef2ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  langBadgeText: { fontSize: 12, fontWeight: '700', color: '#3730A3' },
   version: { textAlign: 'center', fontSize: 10, fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 2, paddingVertical: 8 },
 })

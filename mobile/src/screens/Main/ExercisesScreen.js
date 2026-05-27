@@ -7,6 +7,8 @@ import ScreenHeader from '../../components/ScreenHeader'
 import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
 import useExercises from '../../hooks/useExercises'
 import { CATEGORY_KEYS, CATEGORY_VALUES, BADGE_COLORS, BADGE_TEXT } from '../../constants/categories'
+import i18n from '../../i18n'
+import { translateExerciseName, translateCategory } from '../../i18n/exerciseNames'
 
 export default function ExercisesScreen({ navigation }) {
   const { t } = useTranslation()
@@ -45,12 +47,12 @@ export default function ExercisesScreen({ navigation }) {
         renderItem={({ item }) => (
           <View style={styles.item}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemName}>{translateExerciseName(item.name, i18n.language)}</Text>
               {!!item.is_default && <Text style={styles.defaultBadge}>DEFAULT</Text>}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <View style={[styles.catBadge, { backgroundColor: BADGE_COLORS[item.category] ?? '#f1f5f9' }]}>
-                <Text style={[styles.catBadgeText, { color: BADGE_TEXT[item.category] ?? '#64748b' }]}>{item.category}</Text>
+                <Text style={[styles.catBadgeText, { color: BADGE_TEXT[item.category] ?? '#64748b' }]}>{translateCategory(item.category, i18n.language)}</Text>
               </View>
               {!item.is_default && (
                 <TouchableOpacity onPress={() => remove(item.id)}>

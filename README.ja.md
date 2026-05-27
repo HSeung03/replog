@@ -6,6 +6,43 @@
 
 <br/>
 
+## スクリーンショット
+
+<table>
+  <tr>
+    <td align="center"><b>ログイン</b></td>
+    <td align="center"><b>カレンダー</b></td>
+    <td align="center"><b>トレーニング記録</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/01_login.png" width="220"/></td>
+    <td><img src="docs/screenshots/02_calendar.png" width="220"/></td>
+    <td><img src="docs/screenshots/05_log_done.png" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>種目追加</b></td>
+    <td align="center"><b>種目一覧</b></td>
+    <td align="center"><b>テンプレート一覧</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/04_log_add.png" width="220"/></td>
+    <td><img src="docs/screenshots/06_exercises.png" width="220"/></td>
+    <td><img src="docs/screenshots/08_template_list.png" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>テンプレート追加</b></td>
+    <td align="center"><b>プロフィール / 言語設定</b></td>
+    <td align="center"><b>記録（空状態）</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/07_template_add.png" width="220"/></td>
+    <td><img src="docs/screenshots/09_profile.png" width="220"/></td>
+    <td><img src="docs/screenshots/03_log_empty.png" width="220"/></td>
+  </tr>
+</table>
+
+<br/>
+
 ## プロジェクト概要
 
 ジムでのトレーニングを日付ごとに記録し、種目別セット数・重量・回数を管理するトレーニング記録モバイルアプリです。

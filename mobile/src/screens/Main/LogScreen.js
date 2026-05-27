@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Activi
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
+import i18n from '../../i18n'
+import { translateExerciseName, translateCategory } from '../../i18n/exerciseNames'
 import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
 import useLog from '../../hooks/useLog'
 import useExercises from '../../hooks/useExercises'
@@ -71,7 +73,7 @@ export default function LogScreen({ route }) {
   }
 
   const grouped = log?.sets?.reduce((acc, set) => {
-    const name = set.exercise?.name || t('log.unknown')
+    const name = translateExerciseName(set.exercise?.name, i18n.language) || t('log.unknown')
     if (!acc[name]) acc[name] = []
     acc[name].push(set)
     return acc
@@ -79,7 +81,7 @@ export default function LogScreen({ route }) {
 
   const totalVolume = Object.values(grouped).flat().reduce((sum, s) => sum + s.weight * s.reps, 0)
   const totalSets = Object.values(grouped).flat().length
-  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
+  const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString(i18n.language === 'ja' ? 'ja-JP' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
 
   if (isLoading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#3730A3" /></View>
 
@@ -153,8 +155,8 @@ export default function LogScreen({ route }) {
           {pendingExercises.map((ex) => (
             <View key={ex.id} style={styles.pendingItem}>
               <View>
-                <Text style={styles.pendingName}>{ex.name}</Text>
-                <Text style={styles.pendingCat}>{ex.category}</Text>
+                <Text style={styles.pendingName}>{translateExerciseName(ex.name, i18n.language)}</Text>
+                <Text style={styles.pendingCat}>{translateCategory(ex.category, i18n.language)}</Text>
               </View>
               <TouchableOpacity style={styles.pendingBtn} onPress={() => { setSelectedExercise(String(ex.id)); setSetForm({ reps: '', weight: '' }); setAddOpen(true) }}>
                 <Text style={styles.pendingBtnText}>+ {t('log.addSet')}</Text>
@@ -187,7 +189,7 @@ export default function LogScreen({ route }) {
         {!!selectedExercise && (
           <View style={styles.selectedExBadge}>
             <Ionicons name="barbell-outline" size={14} color="#3730A3" />
-            <Text style={styles.selectedExText}>{exercises.find((e) => String(e.id) === selectedExercise)?.name}</Text>
+            <Text style={styles.selectedExText}>{translateExerciseName(exercises.find((e) => String(e.id) === selectedExercise)?.name, i18n.language)}</Text>
             <TouchableOpacity onPress={() => setSelectedExercise('')}>
               <Ionicons name="close-circle" size={16} color="#94a3b8" />
             </TouchableOpacity>
@@ -198,7 +200,7 @@ export default function LogScreen({ route }) {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44 }} contentContainerStyle={{ gap: 8, paddingVertical: 4, alignItems: 'center' }}>
               {['all', ...CATEGORY_KEYS].map((key) => (
                 <TouchableOpacity key={key} onPress={() => setAddCategory(key)} style={[styles.catFilterBtn, addCategory === key && styles.catFilterBtnActive]}>
-                  <Text style={[styles.catFilterText, addCategory === key && styles.catFilterTextActive]}>{CATEGORY_LABELS[key]}</Text>
+                  <Text style={[styles.catFilterText, addCategory === key && styles.catFilterTextActive]}>{t('exercises.categories.' + key)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -207,7 +209,7 @@ export default function LogScreen({ route }) {
                 .filter((ex) => addCategory === 'all' || ex.category === CATEGORY_VALUES[addCategory])
                 .map((ex) => (
                   <TouchableOpacity key={ex.id} style={[styles.exItem, selectedExercise === String(ex.id) && styles.exItemSelected]} onPress={() => setSelectedExercise(String(ex.id))}>
-                    <Text style={styles.exItemText}>{ex.name}</Text>
+                    <Text style={styles.exItemText}>{translateExerciseName(ex.name, i18n.language)}</Text>
                   </TouchableOpacity>
                 ))}
             </ScrollView>
@@ -249,7 +251,7 @@ export default function LogScreen({ route }) {
         {templates.map((tmpl) => (
           <TouchableOpacity key={tmpl.id} style={styles.tmplItem} onPress={() => handleLoadTemplate(tmpl)}>
             <Text style={styles.tmplName}>{tmpl.name}</Text>
-            <Text style={styles.tmplSub}>{tmpl.exercises?.map((ex) => ex.name).join(' · ')}</Text>
+            <Text style={styles.tmplSub}>{tmpl.exercises?.map((ex) => translateExerciseName(ex.name, i18n.language)).join(' · ')}</Text>
           </TouchableOpacity>
         ))}
         <TouchableOpacity style={sheetStyles.cancelBtn} onPress={() => setTemplateOpen(false)}><Text style={sheetStyles.cancelText}>{t('common.close')}</Text></TouchableOpacity>
