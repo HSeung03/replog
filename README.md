@@ -15,8 +15,8 @@
     <td align="center"><b>운동 기록</b></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/02_calendar.png" width="220"/></td>
     <td><img src="docs/screenshots/01_login.png" width="220"/></td>
+    <td><img src="docs/screenshots/02_calendar.png" width="220"/></td>
     <td><img src="docs/screenshots/05_log_done.png" width="220"/></td>
   </tr>
   <tr>
