@@ -10,8 +10,8 @@
 
 <table>
   <tr>
-    <td align="center"><b>ログイン</b></td>
     <td align="center"><b>カレンダー</b></td>
+    <td align="center"><b>ログイン</b></td>
     <td align="center"><b>トレーニング記録</b></td>
   </tr>
   <tr>
