@@ -99,7 +99,9 @@
     "templates": "템플릿",
     "templatesDesc": "루틴 템플릿 관리",
     "logout": "로그아웃",
-    "logoutDesc": "세션 종료"
+    "logoutDesc": "세션 종료",
+    "language": "언어",
+    "languageDesc": "언어 설정"
   },
   "templates": {
     "title": "템플릿",

@@ -8,6 +8,8 @@ import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
 import useTemplates from '../../hooks/useTemplates'
 import useExercises from '../../hooks/useExercises'
 import { CATEGORY_KEYS, CATEGORY_VALUES } from '../../constants/categories'
+import i18n from '../../i18n'
+import { translateExerciseName } from '../../i18n/exerciseNames'
 
 export default function TemplatesScreen({ navigation }) {
   const { t } = useTranslation()
@@ -46,7 +48,7 @@ export default function TemplatesScreen({ navigation }) {
           <TouchableOpacity style={styles.item} onPress={() => openEdit(item)}>
             <View style={{ flex: 1 }}>
               <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemSub} numberOfLines={1}>{item.exercises?.map((ex) => ex.name).join(' · ')}</Text>
+              <Text style={styles.itemSub} numberOfLines={1}>{item.exercises?.map((ex) => translateExerciseName(ex.name, i18n.language)).join(' · ')}</Text>
             </View>
             <TouchableOpacity onPress={() => remove(item.id)} style={styles.deleteBtn}>
               <Ionicons name="trash-outline" size={14} color="#cbd5e1" />
@@ -79,7 +81,7 @@ export default function TemplatesScreen({ navigation }) {
                 style={[styles.exItem, isSelected && styles.exItemSelected]}
                 onPress={() => setSelectedExercises(isSelected ? selectedExercises.filter((e) => e.id !== ex.id) : [...selectedExercises, ex])}
               >
-                <Text style={[styles.exItemText, isSelected && styles.exItemTextSelected]}>{ex.name}</Text>
+                <Text style={[styles.exItemText, isSelected && styles.exItemTextSelected]}>{translateExerciseName(ex.name, i18n.language)}</Text>
                 {isSelected && <Ionicons name="close" size={12} color="#3730A3" />}
               </TouchableOpacity>
             )
@@ -90,7 +92,7 @@ export default function TemplatesScreen({ navigation }) {
           <View style={styles.selectedRow}>
             {selectedExercises.map((ex) => (
               <TouchableOpacity key={ex.id} style={styles.selectedChip} onPress={() => setSelectedExercises(selectedExercises.filter((e) => e.id !== ex.id))}>
-                <Text style={styles.selectedChipText}>{ex.name}</Text>
+                <Text style={styles.selectedChipText}>{translateExerciseName(ex.name, i18n.language)}</Text>
                 <Ionicons name="close" size={10} color="#3730A3" />
               </TouchableOpacity>
             ))}

@@ -6,6 +6,43 @@
 
 <br/>
 
+## 스크린샷
+
+<table>
+  <tr>
+    <td align="center"><b>로그인</b></td>
+    <td align="center"><b>캘린더</b></td>
+    <td align="center"><b>운동 기록</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/01_login.png" width="220"/></td>
+    <td><img src="docs/screenshots/02_calendar.png" width="220"/></td>
+    <td><img src="docs/screenshots/05_log_done.png" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>종목 추가</b></td>
+    <td align="center"><b>종목 목록</b></td>
+    <td align="center"><b>템플릿 목록</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/04_log_add.png" width="220"/></td>
+    <td><img src="docs/screenshots/06_exercises.png" width="220"/></td>
+    <td><img src="docs/screenshots/08_template_list.png" width="220"/></td>
+  </tr>
+  <tr>
+    <td align="center"><b>템플릿 추가</b></td>
+    <td align="center"><b>프로필 / 언어 설정</b></td>
+    <td align="center"><b>기록 빈 상태</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/07_template_add.png" width="220"/></td>
+    <td><img src="docs/screenshots/09_profile.png" width="220"/></td>
+    <td><img src="docs/screenshots/03_log_empty.png" width="220"/></td>
+  </tr>
+</table>
+
+<br/>
+
 ## 프로젝트 소개
 
 헬스장에서 했던 운동을 날짜별로 기록하고, 세트/무게/횟수를 추적하는 운동 기록 모바일 앱입니다.
