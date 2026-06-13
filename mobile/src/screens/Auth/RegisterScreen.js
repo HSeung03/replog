@@ -23,7 +23,7 @@ export default function RegisterScreen({ navigation }) {
       const res = await register(form)
       login(res.data.token, res.data.user)
     } catch (err) {
-      if (!err.response) setError(`연결 실패: ${err.message} / ${err.code}`)
+      if (!err.response) setError(t('common.serverError'))
       else if (err.response.status === 422) {
         const errors = err.response.data?.errors
         const first = errors ? Object.values(errors)[0]?.[0] : null
