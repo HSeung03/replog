@@ -49,7 +49,7 @@
 
 기존 프로젝트에서 운동 결과를 JSON 컬럼에 통째로 저장하던 방식을 정규화된 테이블 구조로 개선하여, 세트별 조회/수정/삭제 및 1RM 계산이 가능하도록 재설계했습니다.
 
-React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, Railway를 통해 실제 배포까지 완료된 프로젝트입니다.
+React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, AWS EC2에 배포하여 실제 서비스 중인 프로젝트입니다.
 
 <br/>
 
@@ -61,7 +61,9 @@ React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, 
 | Laravel 13 | 인증(Sanctum), ORM(Eloquent), 라우팅 등 기본 제공이 풍부해 빠른 API 개발 가능 |
 | MySQL | 정규화된 관계형 데이터 구조에 적합 |
 | Laravel Sanctum | 토큰 기반 인증 (Bearer Token) |
-| Railway | GitHub 연동 자동 배포, MySQL 서비스 포함 |
+| AWS EC2 | 서버 환경 직접 제어 가능한 프로덕션 배포 환경 |
+| Nginx + PHP-FPM 8.4 | 동시 요청 처리 성능, 프로덕션 표준 구성 |
+| GitHub Actions | master 브랜치 push 시 EC2 자동 배포 (CI/CD) |
 
 ### Mobile
 | 기술 | 선택 이유 |
@@ -192,8 +194,7 @@ replog/
 │   │   ├── migrations/       테이블 정의
 │   │   └── seeders/          기본 운동 종목 32개
 │   ├── tests/Feature/        Auth / Exercise / WorkoutLog 테스트
-│   ├── nixpacks.toml         Railway 빌드 설정
-│   └── Procfile              Railway 실행 커맨드
+│   └── .github/workflows/    GitHub Actions CI/CD 설정
 └── mobile/                   React Native + Expo
     └── src/
         ├── api/              axios 기반 API 호출 함수
@@ -260,8 +261,11 @@ npx expo start
 
 | 항목 | 서비스 |
 |------|--------|
-| 백엔드 API | Railway (replog-production.up.railway.app) |
-| 데이터베이스 | Railway MySQL |
+| 백엔드 API | AWS EC2 (replog.servegame.com) |
+| 웹서버 | Nginx + PHP-FPM 8.4 |
+| SSL | Let's Encrypt (Certbot) |
+| 데이터베이스 | MySQL |
+| CI/CD | GitHub Actions (master push → SSH 자동 배포) |
 | Android APK | EAS Build (expo.dev) |
 
 <br/>
