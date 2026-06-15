@@ -8,6 +8,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/replog-backend:$IMAGE_TAG -t $ECR_REGISTRY/replog-backend:latest ./backend
+          docker push $ECR_REGISTRY/replog-backend:$IMAGE_TAG
+          docker push $ECR_REGISTRY/replog-backend:latest
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -15,12 +38,17 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /var/www/replog
-            git pull origin master
-            cd backend
-            composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
-            php artisan migrate --force
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan route:clear
-            sudo systemctl restart php8.4-fpm
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/replog-backend:latest
+            docker stop replog-backend || true
+            docker rm replog-backend || true
+            docker run -d \
+              --name replog-backend \
+              -p 9000:9000 \
+              -v /var/www/replog/backend/.env:/var/www/html/.env \
+              -v /var/www/replog/backend/storage:/var/www/html/storage \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/replog-backend:latest
+            docker exec replog-backend php artisan migrate --force
+            docker exec replog-backend php artisan config:clear
+            docker exec replog-backend php artisan cache:clear
+            docker exec replog-backend php artisan route:clear
