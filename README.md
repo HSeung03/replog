@@ -2,7 +2,7 @@
 
 **[한국어](./README.md) | [日本語](./README.ja.md)**
 
-> 나만의 운동 기록 일지 — 기존 프로젝트(fit-log-laravel)의 구조적 한계를 개선한 리뉴얼 버전
+> 나만의 운동 기록 일지 — 세트/무게/횟수를 날짜별로 추적하는 운동 기록 모바일 앱
 
 <br/>
 
@@ -47,7 +47,7 @@
 
 헬스장에서 했던 운동을 날짜별로 기록하고, 세트/무게/횟수를 추적하는 운동 기록 모바일 앱입니다.
 
-기존 프로젝트에서 운동 결과를 JSON 컬럼에 통째로 저장하던 방식을 정규화된 테이블 구조로 개선하여, 세트별 조회/수정/삭제 및 1RM 계산이 가능하도록 재설계했습니다.
+운동 결과를 세트 단위로 정규화된 테이블에 저장하여 세트별 조회/수정/삭제 및 1RM 계산이 가능하도록 설계했습니다.
 
 React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, AWS EC2에 배포하여 실제 서비스 중인 프로젝트입니다.
 
@@ -93,16 +93,16 @@ React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, 
 
 ## DB 설계
 
-### 기존 프로젝트 대비 개선점
+### 설계 원칙
 
-| 항목 | 기존 | 개선 |
-|------|------|------|
-| 운동 결과 저장 | `workout_results` JSON 컬럼 | `workout_sets` 정규화 테이블 |
-| 템플릿 종목 | `routine_contents` JSON 컬럼 | `template_exercises` 정규화 테이블 |
-| 신체 기록 | `users` 테이블 컬럼 (1회만 저장) | `body_records` 별도 테이블 (날짜별 누적) |
-| 기본 종목 | 유저마다 복사 저장 | `is_default` 플래그로 공유 |
+운동 결과를 세트 단위로 분리 저장하여 개별 수정/삭제가 가능하도록 정규화 구조를 채택했습니다.
 
-JSON → 정규화 이유: 세트별 조회/수정/삭제 가능, 1RM 계산을 SQL로 처리, 이전 기록 불러오기 용이
+| 테이블 | 역할 |
+|--------|------|
+| `workout_sets` | 세트별 무게/횟수 개별 저장 (조회/수정/삭제/1RM 계산) |
+| `template_exercises` | 템플릿 종목을 정규화 테이블로 관리 |
+| `body_records` | 신체 정보를 날짜별 누적 기록 |
+| `exercises.is_default` | 기본 종목을 플래그로 공유 (유저별 중복 저장 방지) |
 
 ### ERD
 
@@ -267,7 +267,3 @@ npx expo start
 | 데이터베이스 | MySQL |
 | CI/CD | GitHub Actions (master push → SSH 자동 배포) |
 | Android APK | EAS Build (expo.dev) |
-
-<br/>
-
-> 기존 프로젝트: [fit-log-laravel](https://github.com/HSeung03/fit-log-laravel)
