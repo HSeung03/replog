@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -79,18 +81,48 @@ class AuthController extends Controller
         $request->validate(['id_token' => 'required|string']);
 
         try {
-            $response = \Illuminate\Support\Facades\Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
+            $response = Http::get('https://www.googleapis.com/oauth2/v3/tokeninfo', [
                 'id_token' => $request->id_token,
             ]);
 
             if (!$response->ok()) {
-                \Illuminate\Support\Facades\Log::error('Google tokeninfo failed', ['status' => $response->status(), 'body' => $response->body()]);
+                Log::error('Google tokeninfo failed', ['status' => $response->status(), 'body' => $response->body()]);
                 return response()->json(['message' => '구글 로그인 실패'], 401);
             }
 
             $googleUser = $response->json();
 
             if (empty($googleUser['sub']) || empty($googleUser['email'])) {
+                return response()->json(['message' => '구글 로그인 실패'], 401);
+            }
+
+            // tokeninfo는 서명과 만료만 검증한다. aud를 직접 확인하지 않으면
+            // 다른 구글 앱에서 발급받은 id_token으로도 로그인이 통과한다.
+            $allowedAudiences = config('services.google.allowed_audiences', []);
+
+            if (empty($allowedAudiences)) {
+                Log::error('Google login rejected: services.google.allowed_audiences is empty');
+
+                return response()->json(['message' => '구글 로그인 실패'], 401);
+            }
+
+            if (!in_array($googleUser['aud'] ?? '', $allowedAudiences, true)) {
+                Log::warning('Google login rejected: unexpected aud', ['aud' => $googleUser['aud'] ?? null]);
+
+                return response()->json(['message' => '구글 로그인 실패'], 401);
+            }
+
+            if (!in_array($googleUser['iss'] ?? '', ['accounts.google.com', 'https://accounts.google.com'], true)) {
+                Log::warning('Google login rejected: unexpected iss', ['iss' => $googleUser['iss'] ?? null]);
+
+                return response()->json(['message' => '구글 로그인 실패'], 401);
+            }
+
+            // 이메일로 기존 계정을 찾아 연결하므로, 구글이 소유를 확인해 준
+            // 이메일이 아니면 남의 계정에 붙을 수 있다. (tokeninfo는 문자열 "true"를 준다)
+            if (!filter_var($googleUser['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                Log::warning('Google login rejected: email not verified', ['email' => $googleUser['email']]);
+
                 return response()->json(['message' => '구글 로그인 실패'], 401);
             }
 
@@ -113,7 +145,7 @@ class AuthController extends Controller
                 'user'    => $user,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Google login exception', ['message' => $e->getMessage()]);
+            Log::error('Google login exception', ['message' => $e->getMessage()]);
             return response()->json(['message' => '구글 로그인 실패'], 401);
         }
     }
