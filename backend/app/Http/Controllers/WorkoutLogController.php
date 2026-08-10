@@ -116,6 +116,11 @@ class WorkoutLogController extends Controller
             return response()->json(['message' => '권한이 없습니다.'], 403);
         }
 
+        // 세트가 이 일지에 속하는지 확인 (다른 일지의 세트 ID를 끼워넣는 것 차단)
+        if ($set->workout_log_id != $workoutLog->id) {
+            return response()->json(['message' => '세트를 찾을 수 없습니다.'], 404);
+        }
+
         $request->validate([
             'reps'   => 'required|integer|min:1',
             'weight' => 'required|numeric|min:0',
@@ -131,6 +136,11 @@ class WorkoutLogController extends Controller
     {
         if ($workoutLog->user_id != $request->user()->id) {
             return response()->json(['message' => '권한이 없습니다.'], 403);
+        }
+
+        // 세트가 이 일지에 속하는지 확인 (다른 일지의 세트 ID를 끼워넣는 것 차단)
+        if ($set->workout_log_id != $workoutLog->id) {
+            return response()->json(['message' => '세트를 찾을 수 없습니다.'], 404);
         }
 
         $exerciseId = $set->exercise_id;
