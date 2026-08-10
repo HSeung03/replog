@@ -111,6 +111,18 @@ export const deleteLog = async (localId) => {
   await db.runAsync('DELETE FROM workout_logs WHERE local_id = ?', [localId])
 }
 
+// 계정이 바뀔 때 이 기기에 남은 기록을 전부 비운다.
+// 남겨두면 다음 로그인한 사람에게 이전 사용자의 기록이 보이고,
+// 대기 중이던 sync_queue가 새 계정의 토큰으로 실행되어 서버로 올라간다.
+export const clearLocalData = async () => {
+  const db = await getDB()
+  await db.execAsync(`
+    DELETE FROM sync_queue;
+    DELETE FROM workout_sets;
+    DELETE FROM workout_logs;
+  `)
+}
+
 export const addToSyncQueue = async (action, payload) => {
   const db = await getDB()
   await db.runAsync(

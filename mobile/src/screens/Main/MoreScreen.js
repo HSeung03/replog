@@ -16,7 +16,8 @@ export default function MoreScreen({ navigation }) {
 
   const handleLogout = async () => {
     try { await logout() } catch {}
-    logoutAuth()
+    // 로컬 DB/캐시 정리가 끝난 뒤에 화면이 전환되도록 기다린다
+    await logoutAuth()
   }
 
   return (

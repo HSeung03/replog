@@ -21,7 +21,7 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true)
     try {
       const res = await register(form)
-      login(res.data.token, res.data.user)
+      await login(res.data.token, res.data.user)
     } catch (err) {
       if (!err.response) setError(t('common.serverError'))
       else if (err.response.status === 422) {
