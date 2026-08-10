@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }) {
       const idToken = userInfo.data?.idToken
       if (!idToken) throw new Error('No id_token')
       const res = await googleLoginApi(idToken)
-      login(res.data.token, res.data.user)
+      await login(res.data.token, res.data.user)
     } catch (e) {
       if (e.code === statusCodes.SIGN_IN_CANCELLED) return
       setError('구글 로그인에 실패했습니다.')
@@ -44,7 +44,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(true)
     try {
       const res = await loginApi(form)
-      login(res.data.token, res.data.user)
+      await login(res.data.token, res.data.user)
     } catch (err) {
       if (!err.response) setError(t('common.serverError'))
       else if (err.response.status === 401 || err.response.status === 422) setError(t('login.errors.wrongCredentials'))
