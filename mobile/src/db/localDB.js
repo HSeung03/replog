@@ -111,6 +111,95 @@ export const deleteLog = async (localId) => {
   await db.runAsync('DELETE FROM workout_logs WHERE local_id = ?', [localId])
 }
 
+// 서버에서 받아온 일지를 로컬 DB에 합친다.
+//
+// 이게 없으면 서버 응답이 화면 상태에만 얹히고 로컬 DB는 그대로 남는다.
+// 그러면 서버에서 받아온 행에는 local_id가 없어 삭제/수정이 로컬에 반영되지
+// 않고, 다음에 오프라인으로 열 때 지웠던 세트가 되살아난다.
+//
+// 규칙은 하나다: 아직 서버에 못 올린 것(synced = 0)은 절대 덮어쓰지 않는다.
+export const reconcileServerLog = async (date, serverLog) => {
+  const db = await getDB()
+
+  if (!serverLog) {
+    // 서버에는 이 날짜 기록이 없다. 다른 기기에서 지운 경우이므로
+    // 동기화가 끝난 행만 정리하고, 올리지 못한 로컬 기록은 남긴다.
+    await db.runAsync(
+      `DELETE FROM workout_sets
+        WHERE synced = 1
+          AND log_local_id IN (SELECT local_id FROM workout_logs WHERE record_date = ?)`,
+      [date]
+    )
+    await db.runAsync(
+      `DELETE FROM workout_logs
+        WHERE record_date = ? AND synced = 1
+          AND NOT EXISTS (SELECT 1 FROM workout_sets WHERE log_local_id = workout_logs.local_id)`,
+      [date]
+    )
+    return
+  }
+
+  const local = await db.getFirstAsync('SELECT * FROM workout_logs WHERE record_date = ?', [date])
+
+  let logLocalId
+  if (local) {
+    logLocalId = local.local_id
+    if (local.synced === 1) {
+      await db.runAsync(
+        'UPDATE workout_logs SET server_id = ?, memo = ? WHERE local_id = ?',
+        [serverLog.id, serverLog.memo ?? '', logLocalId]
+      )
+    } else {
+      // 메모 수정이 아직 밀려 있다. server_id만 채우고 내용은 건드리지 않는다.
+      await db.runAsync('UPDATE workout_logs SET server_id = ? WHERE local_id = ?', [serverLog.id, logLocalId])
+    }
+  } else {
+    const inserted = await db.runAsync(
+      'INSERT INTO workout_logs (server_id, record_date, memo, synced) VALUES (?, ?, ?, 1)',
+      [serverLog.id, date, serverLog.memo ?? '']
+    )
+    logLocalId = inserted.lastInsertRowId
+  }
+
+  const serverSets = serverLog.sets ?? []
+  const serverIds = serverSets.map((s) => s.id)
+
+  // 서버에서 사라진 세트는 로컬에서도 지운다.
+  // server_id가 없는 행은 아직 못 올린 것이므로 건드리지 않는다.
+  const placeholders = serverIds.map(() => '?').join(',')
+  await db.runAsync(
+    `DELETE FROM workout_sets
+      WHERE log_local_id = ?
+        AND server_id IS NOT NULL
+        ${serverIds.length ? `AND server_id NOT IN (${placeholders})` : ''}`,
+    [logLocalId, ...serverIds]
+  )
+
+  for (const s of serverSets) {
+    const existing = await db.getFirstAsync(
+      'SELECT local_id, synced FROM workout_sets WHERE server_id = ?',
+      [s.id]
+    )
+
+    if (!existing) {
+      await db.runAsync(
+        `INSERT INTO workout_sets
+           (server_id, log_local_id, exercise_id, set_number, weight, reps, synced)
+         VALUES (?, ?, ?, ?, ?, ?, 1)`,
+        [s.id, logLocalId, s.exercise_id, s.set_number, Number(s.weight), Number(s.reps)]
+      )
+    } else if (existing.synced === 1) {
+      // synced = 0이면 아직 못 올린 수정이 있으니 서버 값으로 덮지 않는다.
+      await db.runAsync(
+        `UPDATE workout_sets
+            SET log_local_id = ?, exercise_id = ?, set_number = ?, weight = ?, reps = ?
+          WHERE local_id = ?`,
+        [logLocalId, s.exercise_id, s.set_number, Number(s.weight), Number(s.reps), existing.local_id]
+      )
+    }
+  }
+}
+
 // 계정이 바뀔 때 이 기기에 남은 기록을 전부 비운다.
 // 남겨두면 다음 로그인한 사람에게 이전 사용자의 기록이 보이고,
 // 대기 중이던 sync_queue가 새 계정의 토큰으로 실행되어 서버로 올라간다.
