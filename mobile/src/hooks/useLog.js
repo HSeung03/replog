@@ -187,9 +187,18 @@ export default function useLog(date) {
     const set = log?.sets?.find(s => s.id === setId)
     if (set?.local_id) await updateLocalSet(set.local_id, data)
 
+    // 큐에는 로컬 ID만 담는다. 서버 ID를 담으면 아직 못 올린 세트를
+    // 수정했을 때 null이 박히고, 그 항목은 영영 성공하지 못한 채
+    // 큐에 남아 매 동기화마다 실패한다.
+    const queueUpdate = () => addToSyncQueue('updateSet', {
+      logLocalId: log?.local_id,
+      setLocalId: set?.local_id,
+      data,
+    })
+
     // local-xxx ID면 아직 서버 미동기화 → 큐에 저장
     if (typeof setId !== 'number') {
-      await addToSyncQueue('updateSet', { logServerId: log?.id, setServerId: set?.server_id, data })
+      await queueUpdate()
       return
     }
 
@@ -200,10 +209,10 @@ export default function useLog(date) {
         if (set?.local_id) await updateSetServerId(set.local_id, setId)
       } catch (e) {
         setLog(prevLog)
-        await addToSyncQueue('updateSet', { logServerId: log.id, setServerId: setId, data })
+        await queueUpdate()
       }
     } else {
-      await addToSyncQueue('updateSet', { logServerId: log?.id, setServerId: setId, data })
+      await queueUpdate()
     }
   }
 
