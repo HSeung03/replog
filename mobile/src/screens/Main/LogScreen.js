@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
@@ -82,8 +82,13 @@ export default function LogScreen({ route }) {
     setTemplateOpen(false)
   }
 
+  // 로컬 DB에서 올라온 세트에는 exercise 객체가 없고 exercise_id만 있다.
+  // 종목 목록은 이미 캐시돼 있으므로 여기서 이름을 붙인다.
+  const exerciseById = useMemo(() => new Map(exercises.map((ex) => [ex.id, ex])), [exercises])
+
   const grouped = log?.sets?.reduce((acc, set) => {
-    const name = translateExerciseName(set.exercise?.name, i18n.language) || t('log.unknown')
+    const exercise = set.exercise ?? exerciseById.get(set.exercise_id)
+    const name = translateExerciseName(exercise?.name, i18n.language) || t('log.unknown')
     if (!acc[name]) acc[name] = []
     acc[name].push(set)
     return acc

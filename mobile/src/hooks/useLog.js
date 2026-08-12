@@ -3,7 +3,7 @@ import NetInfo from '@react-native-community/netinfo'
 import {
   getLocalLog, getLocalSets, insertLog, updateLogMemo, deleteLog as deleteLocalLog,
   insertSet, updateSet as updateLocalSet, deleteSet as deleteLocalSet,
-  updateLogServerId, updateSetServerId, addToSyncQueue,
+  updateLogServerId, updateSetServerId, addToSyncQueue, reconcileServerLog,
 } from '../db/localDB'
 import { syncPendingQueue } from '../db/syncManager'
 import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../api/workoutLogs'
@@ -41,11 +41,14 @@ export default function useLog(date) {
       if (state.isConnected) {
         await syncPendingQueue()
         const res = await getLog(date)
-        if (res.status === 204) {
-          setLog(null)
-        } else {
-          setLog(res.data)
-        }
+
+        // 서버 응답을 화면에 바로 얹지 않고 로컬 DB에 먼저 반영한다.
+        // 그래야 모든 세트가 local_id를 갖게 되고, 이어지는 수정/삭제가
+        // 로컬에도 남아 다음 오프라인 조회에서 되살아나지 않는다.
+        await reconcileServerLog(date, res.status === 204 ? null : res.data)
+
+        const merged = await getLocalLog(date)
+        setLog(merged ? toUILog(merged, await getLocalSets(merged.local_id)) : null)
       }
     } finally {
       setIsLoading(false)
@@ -79,6 +82,9 @@ export default function useLog(date) {
     if (state.isConnected) {
       if (localLog.server_id) {
         await updateLog(localLog.server_id, { memo })
+        // 서버에 반영됐으므로 synced로 되돌린다. 그러지 않으면 이 행은
+        // 영원히 "밀린 수정"으로 남아 서버 메모를 다시 받아오지 못한다.
+        await updateLogServerId(localLog.local_id, localLog.server_id)
       } else {
         const res = await createLog({ record_date: date, memo })
         await updateLogServerId(localLog.local_id, res.data.id)
@@ -191,6 +197,7 @@ export default function useLog(date) {
     if (state.isConnected && log?.id) {
       try {
         await updateSet(log.id, setId, data)
+        if (set?.local_id) await updateSetServerId(set.local_id, setId)
       } catch (e) {
         setLog(prevLog)
         await addToSyncQueue('updateSet', { logServerId: log.id, setServerId: setId, data })
