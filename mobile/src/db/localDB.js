@@ -254,3 +254,51 @@ export const getSetByLocalId = async (localId) => {
   const db = await getDB()
   return await db.getFirstAsync('SELECT * FROM workout_sets WHERE local_id = ?', [localId])
 }
+
+// 세트를 지울 때, 아직 올리지 못한 그 세트의 추가/수정 요청도 함께 취소한다.
+// 남겨두면 다음 동기화에서 "지운 세트를 서버에 만드는" 요청이 실행된다.
+//
+// payload를 SQL에서 파싱하지 않고 JS에서 거른다. 큐는 길어야 수십 건이고,
+// SQLite 빌드에 JSON 확장이 있는지에 기대지 않아도 된다.
+export const cancelQueuedSetOperations = async (setLocalIds) => {
+  const targets = new Set([].concat(setLocalIds).filter((id) => id != null))
+  if (targets.size === 0) return
+
+  const db = await getDB()
+  const rows = await db.getAllAsync(
+    `SELECT id, payload FROM sync_queue WHERE action IN ('addSet', 'updateSet')`
+  )
+
+  for (const row of rows) {
+    let payload
+    try {
+      payload = JSON.parse(row.payload)
+    } catch {
+      continue
+    }
+    // addSet은 localSetId, updateSet은 setLocalId로 담긴다.
+    if (targets.has(payload.localSetId) || targets.has(payload.setLocalId)) {
+      await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [row.id])
+    }
+  }
+}
+
+// 일지 전체를 지울 때 그 일지에 딸린 대기 요청을 모두 취소한다.
+export const cancelQueuedLogOperations = async (logLocalId) => {
+  if (logLocalId == null) return
+
+  const db = await getDB()
+  const rows = await db.getAllAsync('SELECT id, payload FROM sync_queue')
+
+  for (const row of rows) {
+    let payload
+    try {
+      payload = JSON.parse(row.payload)
+    } catch {
+      continue
+    }
+    if (payload.logLocalId === logLocalId) {
+      await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [row.id])
+    }
+  }
+}
