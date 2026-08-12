@@ -8,6 +8,15 @@ use Illuminate\Http\Request;
 
 class WorkoutLogController extends Controller
 {
+    /*
+     * workout_sets 컬럼이 담을 수 있는 상한.
+     * 검증이 이보다 넓으면 MySQL strict 모드에서 범위 초과(22003)로 500이 난다.
+     * sqlite는 이 제약을 강제하지 않아 로컬 테스트로는 드러나지 않는다.
+     */
+    private const MAX_SET_NUMBER = 255;     // unsignedTinyInteger
+    private const MAX_REPS       = 65535;   // unsignedSmallInteger
+    private const MAX_WEIGHT     = 999.99;  // decimal(5, 2)
+
     // 날짜별 일지 조회 (세트 + 종목명 포함)
     public function show(Request $request, $date)
     {
@@ -93,9 +102,9 @@ class WorkoutLogController extends Controller
 
         $request->validate([
             'exercise_id' => 'required|exists:exercises,id',
-            'set_number'  => 'required|integer|min:1',
-            'reps'        => 'required|integer|min:1',
-            'weight'      => 'required|numeric|min:0',
+            'set_number'  => 'required|integer|min:1|max:'.self::MAX_SET_NUMBER,
+            'reps'        => 'required|integer|min:1|max:'.self::MAX_REPS,
+            'weight'      => 'required|numeric|min:0|max:'.self::MAX_WEIGHT,
         ]);
 
         $set = WorkoutSet::create([
@@ -122,8 +131,8 @@ class WorkoutLogController extends Controller
         }
 
         $request->validate([
-            'reps'   => 'required|integer|min:1',
-            'weight' => 'required|numeric|min:0',
+            'reps'   => 'required|integer|min:1|max:'.self::MAX_REPS,
+            'weight' => 'required|numeric|min:0|max:'.self::MAX_WEIGHT,
         ]);
 
         $set->update($request->only('reps', 'weight'));

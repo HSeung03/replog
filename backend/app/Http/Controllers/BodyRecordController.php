@@ -7,6 +7,15 @@ use Illuminate\Http\Request;
 
 class BodyRecordController extends Controller
 {
+    /*
+     * body_records 컬럼이 담을 수 있는 상한.
+     * body_fat은 decimal(4,2)라 99.99가 한계인데 기존 규칙은 max:100이었다.
+     * 즉 검증이 허용하는 100을 정작 저장할 수 없어 MySQL에서 500이 났다.
+     */
+    private const MAX_WEIGHT      = 999.99; // decimal(5, 2)
+    private const MAX_MUSCLE_MASS = 999.99; // decimal(5, 2)
+    private const MAX_BODY_FAT    = 99.99;  // decimal(4, 2)
+
     // 전체 기록 조회 (그래프용)
     public function index(Request $request)
     {
@@ -22,9 +31,9 @@ class BodyRecordController extends Controller
     {
         $request->validate([
             'measured_at' => 'required|date',
-            'weight'      => 'required|numeric|min:0',
-            'muscle_mass' => 'required|numeric|min:0',
-            'body_fat'    => 'required|numeric|min:0|max:100',
+            'weight'      => 'required|numeric|min:0|max:'.self::MAX_WEIGHT,
+            'muscle_mass' => 'required|numeric|min:0|max:'.self::MAX_MUSCLE_MASS,
+            'body_fat'    => 'required|numeric|min:0|max:'.self::MAX_BODY_FAT,
         ]);
 
         $record = BodyRecord::create([
@@ -47,9 +56,9 @@ class BodyRecordController extends Controller
 
         $request->validate([
             'measured_at' => 'sometimes|date',
-            'weight'      => 'sometimes|numeric|min:0',
-            'muscle_mass' => 'sometimes|numeric|min:0',
-            'body_fat'    => 'sometimes|numeric|min:0|max:100',
+            'weight'      => 'sometimes|numeric|min:0|max:'.self::MAX_WEIGHT,
+            'muscle_mass' => 'sometimes|numeric|min:0|max:'.self::MAX_MUSCLE_MASS,
+            'body_fat'    => 'sometimes|numeric|min:0|max:'.self::MAX_BODY_FAT,
         ]);
 
         $bodyRecord->update($request->only('measured_at', 'weight', 'muscle_mass', 'body_fat'));
