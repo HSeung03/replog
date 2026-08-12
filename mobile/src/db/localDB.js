@@ -6,8 +6,18 @@ export const getDB = async () => {
   if (!db) {
     db = await SQLite.openDatabaseAsync('replog.db')
     await initDB(db)
+    await migrateDB(db)
   }
   return db
+}
+
+// CREATE TABLE IF NOT EXISTS는 이미 만들어진 테이블에 컬럼을 더해주지 않는다.
+// 기존 설치에도 반영되도록 빠진 컬럼만 골라 붙인다.
+const migrateDB = async (db) => {
+  const columns = await db.getAllAsync('PRAGMA table_info(sync_queue)')
+  if (!columns.some((c) => c.name === 'attempts')) {
+    await db.execAsync('ALTER TABLE sync_queue ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0')
+  }
 }
 
 const initDB = async (db) => {
@@ -36,6 +46,7 @@ const initDB = async (db) => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       action TEXT NOT NULL,
       payload TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER DEFAULT (strftime('%s', 'now'))
     );
   `)
@@ -228,4 +239,18 @@ export const getSyncQueue = async () => {
 export const removeFromSyncQueue = async (id) => {
   const db = await getDB()
   await db.runAsync('DELETE FROM sync_queue WHERE id = ?', [id])
+}
+
+// 실패 횟수를 세서 돌려준다. 영영 성공할 수 없는 항목이 큐에 눌러앉아
+// 매 동기화마다 재시도되는 것을 막는 안전장치다.
+export const bumpSyncAttempt = async (id) => {
+  const db = await getDB()
+  await db.runAsync('UPDATE sync_queue SET attempts = attempts + 1 WHERE id = ?', [id])
+  const row = await db.getFirstAsync('SELECT attempts FROM sync_queue WHERE id = ?', [id])
+  return row?.attempts ?? 0
+}
+
+export const getSetByLocalId = async (localId) => {
+  const db = await getDB()
+  return await db.getFirstAsync('SELECT * FROM workout_sets WHERE local_id = ?', [localId])
 }
