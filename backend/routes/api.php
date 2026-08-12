@@ -7,10 +7,12 @@ use App\Http\Controllers\WorkoutLogController;
 use App\Http\Controllers\WorkoutTemplateController;
 use Illuminate\Support\Facades\Route;
 
-// 인증 불필요
-Route::post('/register',    [AuthController::class, 'register']);
-Route::post('/login',       [AuthController::class, 'login']);
-Route::post('/auth/google', [AuthController::class, 'googleLogin']);
+// 인증 불필요 (토큰을 발급하므로 전역 제한보다 좁게 건다)
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/register',    [AuthController::class, 'register']);
+    Route::post('/login',       [AuthController::class, 'login']);
+    Route::post('/auth/google', [AuthController::class, 'googleLogin']);
+});
 
 // 인증 필요
 Route::middleware('auth:sanctum')->group(function () {

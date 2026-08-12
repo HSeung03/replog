@@ -12,7 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Laravel 11부터 api 그룹에 throttle이 기본 포함되지 않는다.
+        // 리미터 정의는 AppServiceProvider::configureRateLimiting()에 있다.
+        $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
