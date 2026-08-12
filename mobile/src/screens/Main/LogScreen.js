@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
+import { todayStr } from '../../utils/date'
 import i18n from '../../i18n'
 import { translateExerciseName, translateCategory } from '../../i18n/exerciseNames'
 import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
@@ -18,8 +20,16 @@ const calc1RM = (weight, reps) => {
 }
 
 export default function LogScreen({ route }) {
-  const { date } = route.params
   const { t } = useTranslation()
+
+  // 캘린더에서 특정 날짜를 골라 들어온 경우에는 그 날짜를 그대로 쓰고,
+  // 탭으로 바로 들어온 경우에는 화면에 들어올 때마다 오늘을 다시 계산한다.
+  // (앱을 켜둔 채 자정을 넘겨도 오늘로 따라간다)
+  const routeDate = route.params?.date
+  const [today, setToday] = useState(todayStr)
+  useFocusEffect(useCallback(() => { setToday(todayStr()) }, []))
+
+  const date = routeDate ?? today
 
   const { log, isLoading, saveLog, removeLog, addLogSet, updateLogSet, removeLogSet, removeExerciseSets } = useLog(date)
   const { exercises } = useExercises()
