@@ -4,6 +4,7 @@ import {
   getLocalLog, getLocalSets, insertLog, updateLogMemo, deleteLog as deleteLocalLog,
   insertSet, updateSet as updateLocalSet, deleteSet as deleteLocalSet,
   updateLogServerId, updateSetServerId, addToSyncQueue, reconcileServerLog,
+  cancelQueuedSetOperations, cancelQueuedLogOperations,
 } from '../db/localDB'
 import { syncPendingQueue } from '../db/syncManager'
 import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../api/workoutLogs'
@@ -101,7 +102,11 @@ export default function useLog(date) {
     setLog(null)
 
     const localLog = await getLocalLog(date)
-    if (localLog) await deleteLocalLog(localLog.local_id)
+    if (localLog) {
+      await deleteLocalLog(localLog.local_id)
+      // 이 일지에 딸린 대기 요청(세트 추가 등)도 함께 취소한다.
+      await cancelQueuedLogOperations(localLog.local_id)
+    }
 
     const state = await NetInfo.fetch()
     if (state.isConnected && prevLog.id) {
@@ -221,7 +226,12 @@ export default function useLog(date) {
     const set = log?.sets?.find(s => s.id === setId)
     setLog(prev => prev ? { ...prev, sets: prev.sets.filter(s => s.id !== setId) } : prev)
 
-    if (set?.local_id) await deleteLocalSet(set.local_id)
+    if (set?.local_id) {
+      await deleteLocalSet(set.local_id)
+      // 아직 못 올린 추가/수정 요청을 취소한다. 남겨두면 오프라인에서
+      // 추가했다 지운 세트가 다음 동기화 때 서버에 되살아난다.
+      await cancelQueuedSetOperations(set.local_id)
+    }
 
     if (typeof setId !== 'number') return
 
@@ -246,6 +256,7 @@ export default function useLog(date) {
     for (const s of sets) {
       if (s.local_id) await deleteLocalSet(s.local_id)
     }
+    await cancelQueuedSetOperations(sets.map(s => s.local_id))
 
     const serverSets = sets.filter(s => typeof s.id === 'number')
     if (!serverSets.length || !log?.id) return
