@@ -17,11 +17,53 @@ export default function ExercisesScreen({ navigation }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ name: '', category: '가슴' })
 
+  // 삭제는 2단계다. 먼저 확인만 받고, 기록이 딸린 종목이면 서버가 409로
+  // 삭제될 개수를 알려준다. 그때 경고를 보여주고 한 번 더 확인받는다.
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteImpact, setDeleteImpact] = useState(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
   const handleCreate = async () => {
     if (!form.name) return
     await create(form)
     setModalOpen(false)
     setForm({ name: '', category: '가슴' })
+  }
+
+  const openDelete = (exercise) => {
+    setDeleteTarget(exercise)
+    setDeleteImpact(null)
+    setDeleteError('')
+  }
+
+  const closeDelete = () => {
+    setDeleteTarget(null)
+    setDeleteImpact(null)
+    setDeleteError('')
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget || deleting) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await remove(deleteTarget.id, deleteImpact !== null)
+      closeDelete()
+    } catch (e) {
+      const impact = e.response?.status === 409 ? e.response.data : null
+      if (impact && deleteImpact === null) {
+        // 첫 시도에서만 경고로 승격한다. 이미 경고를 본 뒤라면 실패로 취급.
+        setDeleteImpact({
+          setsCount: impact.sets_count ?? 0,
+          templatesCount: impact.templates_count ?? 0,
+        })
+      } else {
+        setDeleteError(t('exercises.deleteFailed'))
+      }
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const filtered = selectedCategory === 'all' ? exercises : exercises.filter((ex) => ex.category === CATEGORY_VALUES[selectedCategory])
@@ -55,7 +97,7 @@ export default function ExercisesScreen({ navigation }) {
                 <Text style={[styles.catBadgeText, { color: BADGE_TEXT[item.category] ?? '#64748b' }]}>{translateCategory(item.category, i18n.language)}</Text>
               </View>
               {!item.is_default && (
-                <TouchableOpacity onPress={() => remove(item.id)}>
+                <TouchableOpacity onPress={() => openDelete(item)}>
                   <Ionicons name="trash-outline" size={14} color="#cbd5e1" />
                 </TouchableOpacity>
               )}
@@ -80,6 +122,47 @@ export default function ExercisesScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity style={[sheetStyles.confirmBtn, !form.name && sheetStyles.confirmBtnDisabled]} onPress={handleCreate} disabled={!form.name}>
             <Text style={sheetStyles.confirmText}>{t('common.add')}</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
+
+      <BottomSheet visible={!!deleteTarget} onClose={closeDelete}>
+        <Text style={sheetStyles.title}>{t('exercises.deleteTitle')}</Text>
+
+        {deleteImpact ? (
+          <View style={styles.warnBox}>
+            <Text style={styles.warnText}>
+              {t('exercises.deleteWarning', {
+                name: translateExerciseName(deleteTarget?.name, i18n.language),
+                setCount: deleteImpact.setsCount,
+              })}
+            </Text>
+            {deleteImpact.templatesCount > 0 && (
+              <Text style={styles.warnSub}>
+                {t('exercises.deleteTemplateWarning', { templateCount: deleteImpact.templatesCount })}
+              </Text>
+            )}
+          </View>
+        ) : (
+          <Text style={styles.deleteDesc}>
+            {t('exercises.deleteSimpleDesc', {
+              name: translateExerciseName(deleteTarget?.name, i18n.language),
+            })}
+          </Text>
+        )}
+
+        {!!deleteError && <Text style={styles.deleteError}>{deleteError}</Text>}
+
+        <View style={sheetStyles.btnRow}>
+          <TouchableOpacity style={sheetStyles.cancelBtn} onPress={closeDelete} disabled={deleting}>
+            <Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[sheetStyles.dangerBtn, deleting && sheetStyles.confirmBtnDisabled]}
+            onPress={handleDelete}
+            disabled={deleting}
+          >
+            <Text style={sheetStyles.confirmText}>{t('common.delete')}</Text>
           </TouchableOpacity>
         </View>
       </BottomSheet>
@@ -108,4 +191,9 @@ const styles = StyleSheet.create({
   catBtnActive: { backgroundColor: '#1E1B4B' },
   catBtnText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   catBtnTextActive: { color: '#fff' },
+  deleteDesc: { fontSize: 14, color: '#475569' },
+  warnBox: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 14, gap: 6 },
+  warnText: { fontSize: 14, fontWeight: '600', color: '#b91c1c', lineHeight: 20 },
+  warnSub: { fontSize: 12, color: '#ef4444' },
+  deleteError: { fontSize: 12, color: '#ef4444', textAlign: 'center' },
 })

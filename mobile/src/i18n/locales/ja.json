@@ -65,6 +65,11 @@
     "namePlaceholder": "種目名（例：インクラインベンチプレス）",
     "addTitle": "種目追加",
     "noExercises": "登録された種目がありません。",
+    "deleteTitle": "種目を削除しますか？",
+    "deleteSimpleDesc": "「{{name}}」をリストから削除します。",
+    "deleteWarning": "「{{name}}」で記録したセット{{setCount}}件も一緒に削除されます。元に戻せません。",
+    "deleteTemplateWarning": "この種目を含むテンプレート{{templateCount}}件からも外れます。",
+    "deleteFailed": "削除できませんでした。しばらくしてからもう一度お試しください。",
     "categories": {
       "all": "すべて",
       "chest": "胸",
