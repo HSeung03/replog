@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import useCalendar from '../../hooks/useCalendar'
+import { toDateStr } from '../../utils/date'
 
 const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
@@ -17,13 +18,6 @@ function buildCalendar(year, month) {
   const remaining = days.length % 7 === 0 ? 0 : 7 - (days.length % 7)
   for (let i = 1; i <= remaining; i++) days.push({ date: new Date(year, month + 1, i), current: false })
   return days
-}
-
-function toDateStr(date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
 }
 
 export default function CalendarScreen({ navigation }) {

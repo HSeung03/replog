@@ -19,7 +19,6 @@ const Tab = createBottomTabNavigator()
 
 function MainTabs() {
   const { t } = useTranslation()
-  const today = new Date().toISOString().slice(0, 10)
 
   return (
     <Tab.Navigator
@@ -36,10 +35,14 @@ function MainTabs() {
         component={CalendarScreen}
         options={{ tabBarLabel: t('nav.home'), tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} /> }}
       />
+      {/*
+        date를 넘기지 않는다. initialParams는 최초 마운트에만 적용되므로
+        앱을 켜둔 채 자정을 넘기면 어제 날짜에 갇힌다.
+        LogScreen이 화면에 들어올 때마다 오늘을 다시 계산하도록 맡긴다.
+      */}
       <Tab.Screen
         name="Log"
         component={LogScreen}
-        initialParams={{ date: today }}
         options={{ tabBarLabel: t('nav.log'), tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} /> }}
       />
       <Tab.Screen
