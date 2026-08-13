@@ -1,6 +1,6 @@
 name: Backend CI
 
-on:
+on: #발동 조건 명세
   push:
     branches: [dev, master]
     paths:
@@ -10,7 +10,7 @@ on:
     paths:
       - 'backend/**'
 
-jobs:
+jobs: #해야할 일 명세
   test:
     name: Laravel Tests
     runs-on: ubuntu-latest

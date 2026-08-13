@@ -11,33 +11,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials # 깃허브 액션이 aws에 접근하려면 인증된 사용자임을 증명해야함
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR # ecr에 로그인함 ecr은 aws가 제공하는 이미지 저장손데 aws판이라고 생각하면 됨
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image # 깃허브 액션이 ecr에 두개의 이미지를 올리려고 함
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }} # 한개는 최신 한개는 올리려고 하는거 이유는 하나 버그발생하면 롤백해야하니까
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/replog-backend:$IMAGE_TAG -t $ECR_REGISTRY/replog-backend:latest ./backend
-          docker push $ECR_REGISTRY/replog-backend:$IMAGE_TAG
+          docker push $ECR_REGISTRY/replog-backend:$IMAGE_TAG 
           docker push $ECR_REGISTRY/replog-backend:latest
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy to EC2 # ec2에 접속하려고 하는 것 script안의 명령어는 모두 ec2에서 동작
+        uses: appleboy/ssh-action@v1.0.0 
         with:
-          host: 98.81.210.162
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY
+          host: 98.81.210.162 # ec2 ip 주소
+          username: ubuntu # ec2에 접속하는 계정
+          key: ${{ secrets.EC2_SSH_KEY }} # secrets에 저장해둔 ssh프라이빗 키 
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY # 환경변수로 ec2에게 넘김 나중에 이 키로 비밀번호를 꺼내와서 aws에 인증후 ecr에 접속하는거임
+          # ec2가 ecr에서 이미지를 풀하려면 ec2도 ecr에 로그인 해야함
+          # aws ecr get-login-password(금고에서 비번 꺼내고) (|)파이프로 docker login--password-stdin여기에 전달하는 명령어
+          # docker stop , rm || true 이거는 있으면 해당 명령어 실행 없어도 그냥 성공처리하고 넘어가란 뜻임
+          # docker run -d -d 는 백그라운드에서 실행하라는 뜻임 --name은 컨테이너 이름 지정 -p는 포트연결
+          # -v 은 볼륨인데 .env와 storage로 관리됨 env는 중요하니까 보안처리로 따로 두는거임 볼륨을 
+          # storage는 유저가 올린 pdf나 이미지 영상등을 저장하는 공간임 db에는 그 경로만 저장되는 거고
+          # 그다음은 백엔드 클리어 새 컨테이너로 교체하면서 캐시 찌꺼기가 남아있을수도 있음
           script: |
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
