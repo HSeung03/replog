@@ -12,7 +12,7 @@ import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
 import useLog from '../../hooks/useLog'
 import useExercises from '../../hooks/useExercises'
 import useTemplates from '../../hooks/useTemplates'
-import { CATEGORY_KEYS, CATEGORY_VALUES, CATEGORY_LABELS } from '../../constants/categories'
+import { CATEGORY_KEYS, CATEGORY_VALUES } from '../../constants/categories'
 
 const calc1RM = (weight, reps) => {
   if (reps <= 0 || reps >= 37) return null
