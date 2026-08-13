@@ -26,7 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 운동 일지
     Route::get('/workout-logs/calendar',          [WorkoutLogController::class, 'calendar']);
-    Route::get('/workout-logs/{date}',             [WorkoutLogController::class, 'show']);
+    // {date}에 아무 문자열이나 들어오면 컨트롤러까지 내려간다. 형식을 라우트에서 막는다.
+    Route::get('/workout-logs/{date}',             [WorkoutLogController::class, 'show'])
+        ->where('date', '\d{4}-\d{2}-\d{2}');
     Route::post('/workout-logs',                   [WorkoutLogController::class, 'store']);
     Route::patch('/workout-logs/{workoutLog}',     [WorkoutLogController::class, 'update']);
     Route::delete('/workout-logs/{workoutLog}',    [WorkoutLogController::class, 'destroy']);

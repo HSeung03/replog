@@ -70,7 +70,9 @@ class WorkoutTemplateTest extends TestCase
 
         $this->actingAs($this->user)
             ->getJson("/api/templates/{$template->id}")
-            ->assertStatus(403);
+            ->assertStatus(403)
+            // Policy로 옮긴 뒤에도 응답 메시지가 그대로인지 확인한다
+            ->assertJson(['message' => '권한이 없습니다.']);
     }
 
     public function test_cannot_update_other_users_template(): void

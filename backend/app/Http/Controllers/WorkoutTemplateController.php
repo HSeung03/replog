@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\WorkoutTemplateResource;
 use App\Models\Exercise;
 use App\Models\WorkoutTemplate;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class WorkoutTemplateController extends Controller
             ->where('user_id', $request->user()->id)
             ->get();
 
-        return response()->json($templates);
+        return response()->json(WorkoutTemplateResource::collection($templates));
     }
 
     // 템플릿 생성
@@ -58,25 +59,21 @@ class WorkoutTemplateController extends Controller
             return $template;
         });
 
-        return response()->json($template->load('exercises'), 201);
+        return response()->json(WorkoutTemplateResource::make($template->load('exercises')), 201);
     }
 
     // 템플릿 상세 조회
     public function show(Request $request, WorkoutTemplate $workoutTemplate)
     {
-        if ($workoutTemplate->user_id !== $request->user()->id) {
-            return response()->json(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->authorize('view', $workoutTemplate);
 
-        return response()->json($workoutTemplate->load('exercises'));
+        return response()->json(WorkoutTemplateResource::make($workoutTemplate->load('exercises')));
     }
 
     // 템플릿 수정 (이름 + 종목 목록 교체)
     public function update(Request $request, WorkoutTemplate $workoutTemplate)
     {
-        if ($workoutTemplate->user_id !== $request->user()->id) {
-            return response()->json(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->authorize('update', $workoutTemplate);
 
         $request->validate([
             'name'       => 'sometimes|string|max:255',
@@ -97,15 +94,13 @@ class WorkoutTemplateController extends Controller
             }
         });
 
-        return response()->json($workoutTemplate->load('exercises'));
+        return response()->json(WorkoutTemplateResource::make($workoutTemplate->load('exercises')));
     }
 
     // 템플릿 삭제
     public function destroy(Request $request, WorkoutTemplate $workoutTemplate)
     {
-        if ($workoutTemplate->user_id !== $request->user()->id) {
-            return response()->json(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->authorize('delete', $workoutTemplate);
 
         $workoutTemplate->delete();
 
