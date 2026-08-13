@@ -72,7 +72,10 @@ export default function CalendarScreen({ navigation }) {
                 <TouchableOpacity
                   key={idx}
                   disabled={isFuture}
-                  onPress={() => navigation.navigate('Log', { date: dateStr })}
+                  // 탭('Log')이 아니라 스택 화면으로 보낸다. 탭으로 보내면
+                  // 그 date가 탭 라우트의 params로 눌러앉아, 이후 하단 "기록"
+                  // 탭을 눌러도 계속 그 날짜가 열린다(앱 재시작 전까지).
+                  onPress={() => navigation.navigate('LogDetail', { date: dateStr })}
                   style={styles.dayCell}
                 >
                   <View style={[styles.dayNum, isToday && styles.today]}>
