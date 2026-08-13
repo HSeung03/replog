@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Exercise;
 use App\Models\WorkoutLog;
 use App\Models\WorkoutSet;
 use Illuminate\Http\Request;
@@ -101,7 +102,7 @@ class WorkoutLogController extends Controller
         }
 
         $request->validate([
-            'exercise_id' => 'required|exists:exercises,id',
+            'exercise_id' => ['required', Exercise::accessibleRule($request->user()->id)],
             'set_number'  => 'required|integer|min:1|max:'.self::MAX_SET_NUMBER,
             'reps'        => 'required|integer|min:1|max:'.self::MAX_REPS,
             'weight'      => 'required|numeric|min:0|max:'.self::MAX_WEIGHT,

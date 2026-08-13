@@ -23,7 +23,17 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_DATABASE" value="testing"/>
+        <!--
+            커넥션을 고정하지 않으면 .env에 적힌 개발용 DB를 그대로 탄다.
+            RefreshDatabase가 migrate:fresh를 돌리므로, .env가 스테이징을
+            가리키는 순간 그 스키마를 날린다.
+
+            force를 주지 않았으므로 이미 환경변수가 있으면 덮지 않는다.
+            CI는 DB_CONNECTION=mysql을 넘겨 MySQL로 돌린다 — sqlite는
+            decimal/tinyint 범위를 강제하지 않아 BE-03 같은 문제를 놓친다.
+        -->
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
