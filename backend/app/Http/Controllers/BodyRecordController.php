@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\BodyRecordResource;
 use App\Models\BodyRecord;
 use Illuminate\Http\Request;
 
@@ -23,7 +24,7 @@ class BodyRecordController extends Controller
             ->orderBy('measured_at')
             ->get();
 
-        return response()->json($records);
+        return response()->json(BodyRecordResource::collection($records));
     }
 
     // 기록 추가
@@ -44,15 +45,13 @@ class BodyRecordController extends Controller
             'body_fat'    => $request->body_fat,
         ]);
 
-        return response()->json($record, 201);
+        return response()->json(BodyRecordResource::make($record), 201);
     }
 
     // 기록 수정
     public function update(Request $request, BodyRecord $bodyRecord)
     {
-        if ($bodyRecord->user_id !== $request->user()->id) {
-            return response()->json(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->authorize('update', $bodyRecord);
 
         $request->validate([
             'measured_at' => 'sometimes|date',
@@ -63,15 +62,13 @@ class BodyRecordController extends Controller
 
         $bodyRecord->update($request->only('measured_at', 'weight', 'muscle_mass', 'body_fat'));
 
-        return response()->json($bodyRecord);
+        return response()->json(BodyRecordResource::make($bodyRecord));
     }
 
     // 기록 삭제
     public function destroy(Request $request, BodyRecord $bodyRecord)
     {
-        if ($bodyRecord->user_id !== $request->user()->id) {
-            return response()->json(['message' => '권한이 없습니다.'], 403);
-        }
+        $this->authorize('delete', $bodyRecord);
 
         $bodyRecord->delete();
 
