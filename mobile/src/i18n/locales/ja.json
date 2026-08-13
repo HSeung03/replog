@@ -96,7 +96,13 @@
     "empty": "まだ記録されたトレーニングがありません。",
     "totalVolume": "総ボリューム",
     "totalSets": "総セット数",
-    "unknown": "不明"
+    "unknown": "不明",
+    "errors": {
+      "notANumber": "数字のみ入力してください。",
+      "weightRange": "重量は 0 ~ 999.99kg の範囲で入力してください。",
+      "repsRange": "回数は 1 ~ 65535 の整数で入力してください。",
+      "saveRejected": "保存できませんでした。入力値を確認してください。"
+    }
   },
   "more": {
     "exercises": "種目",

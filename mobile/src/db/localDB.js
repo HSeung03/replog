@@ -231,9 +231,13 @@ export const addToSyncQueue = async (action, payload) => {
   )
 }
 
+// created_at은 초 단위(strftime('%s'))라 같은 초에 들어간 항목들의 순서를
+// 정하지 못한다. 세트를 추가하고 1초 안에 수정하는 건 흔한 조작이고,
+// 그때 수정이 추가보다 먼저 실행되면 그대로 실패한다.
+// AUTOINCREMENT PK가 삽입 순서를 정확히 담고 있으므로 그걸 쓴다.
 export const getSyncQueue = async () => {
   const db = await getDB()
-  return await db.getAllAsync('SELECT * FROM sync_queue ORDER BY created_at ASC')
+  return await db.getAllAsync('SELECT * FROM sync_queue ORDER BY id ASC')
 }
 
 export const removeFromSyncQueue = async (id) => {

@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { todayStr } from '../../utils/date'
+import { parseSetInput } from '../../utils/setInput'
 import i18n from '../../i18n'
 import { translateExerciseName, translateCategory } from '../../i18n/exerciseNames'
 import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
@@ -19,13 +20,14 @@ const calc1RM = (weight, reps) => {
   return Math.round((weight * 36) / (37 - reps) * 10) / 10
 }
 
-export default function LogScreen({ route }) {
+export default function LogScreen({ route, navigation }) {
   const { t } = useTranslation()
 
-  // 캘린더에서 특정 날짜를 골라 들어온 경우에는 그 날짜를 그대로 쓰고,
-  // 탭으로 바로 들어온 경우에는 화면에 들어올 때마다 오늘을 다시 계산한다.
-  // (앱을 켜둔 채 자정을 넘겨도 오늘로 따라간다)
+  // 캘린더에서 특정 날짜를 골라 들어온 경우(스택 화면)에는 그 날짜를 그대로
+  // 쓰고, 탭으로 바로 들어온 경우에는 화면에 들어올 때마다 오늘을 다시
+  // 계산한다. (앱을 켜둔 채 자정을 넘겨도 오늘로 따라간다)
   const routeDate = route.params?.date
+  const isDetail = !!routeDate
   const [today, setToday] = useState(todayStr)
   useFocusEffect(useCallback(() => { setToday(todayStr()) }, []))
 
@@ -43,10 +45,12 @@ export default function LogScreen({ route }) {
   const [selectedExercise, setSelectedExercise] = useState('')
   const [setForm, setSetForm] = useState({ reps: '', weight: '' })
   const [addCategory, setAddCategory] = useState('all')
+  const [addError, setAddError] = useState('')
 
   const [editOpen, setEditOpen] = useState(false)
   const [editingSet, setEditingSet] = useState(null)
   const [editForm, setEditForm] = useState({ reps: '', weight: '' })
+  const [editError, setEditError] = useState('')
 
   const [deleteLogOpen, setDeleteLogOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -59,15 +63,39 @@ export default function LogScreen({ route }) {
     setTimeout(() => setMemoSaved(false), 2000)
   }
 
+  const openAddSheet = (exerciseId = '') => {
+    setSelectedExercise(exerciseId === '' ? '' : String(exerciseId))
+    setSetForm({ reps: '', weight: '' })
+    setAddError('')
+    setAddOpen(true)
+  }
+
   const handleAddSet = async () => {
-    await addLogSet(Number(selectedExercise), { reps: Number(setForm.reps), weight: Number(setForm.weight) }, memo)
+    const parsed = parseSetInput(setForm)
+    if (!parsed.ok) return setAddError(t(parsed.error))
+
+    try {
+      await addLogSet(Number(selectedExercise), parsed.value, memo)
+    } catch {
+      // 서버가 거절한 입력이다. 시트를 닫지 않고 이유를 남겨둔다.
+      return setAddError(t('log.errors.saveRejected'))
+    }
+
     setPendingExercises((prev) => prev.filter((ex) => ex.id !== Number(selectedExercise)))
-    setAddOpen(false); setSetForm({ reps: '', weight: '' }); setAddCategory('all')
+    setAddOpen(false); setSetForm({ reps: '', weight: '' }); setAddCategory('all'); setAddError('')
   }
 
   const handleUpdateSet = async () => {
-    await updateLogSet(editingSet.id, { reps: Number(editForm.reps), weight: Number(editForm.weight) })
-    setEditOpen(false); setEditingSet(null)
+    const parsed = parseSetInput(editForm)
+    if (!parsed.ok) return setEditError(t(parsed.error))
+
+    try {
+      await updateLogSet(editingSet.id, parsed.value)
+    } catch {
+      return setEditError(t('log.errors.saveRejected'))
+    }
+
+    setEditOpen(false); setEditingSet(null); setEditError('')
   }
 
   const handleDeleteLog = async () => {
@@ -86,16 +114,36 @@ export default function LogScreen({ route }) {
   // 종목 목록은 이미 캐시돼 있으므로 여기서 이름을 붙인다.
   const exerciseById = useMemo(() => new Map(exercises.map((ex) => [ex.id, ex])), [exercises])
 
-  const grouped = log?.sets?.reduce((acc, set) => {
-    const exercise = set.exercise ?? exerciseById.get(set.exercise_id)
-    const name = translateExerciseName(exercise?.name, i18n.language) || t('log.unknown')
-    if (!acc[name]) acc[name] = []
-    acc[name].push(set)
-    return acc
-  }, {}) || {}
+  // 이름이 아니라 exercise_id로 묶는다. 기본 종목과 같은 이름("벤치프레스")으로
+  // 커스텀 종목을 만들 수 있어서, 이름을 키로 쓰면 서로 다른 두 종목의 세트가
+  // 한 그룹으로 합쳐진다. 그러면 세트 번호가 1,2,1,2로 뒤섞이고 "+ 세트 추가"가
+  // sets[0].exercise_id를 쓰므로 어느 쪽에 붙을지가 정렬 순서에 좌우된다.
+  // 이름은 표시용으로만 쓴다.
+  const groups = useMemo(() => {
+    const byId = new Map()
 
-  const totalVolume = Object.values(grouped).flat().reduce((sum, s) => sum + s.weight * s.reps, 0)
-  const totalSets = Object.values(grouped).flat().length
+    for (const set of log?.sets || []) {
+      if (!byId.has(set.exercise_id)) {
+        const exercise = set.exercise ?? exerciseById.get(set.exercise_id)
+        byId.set(set.exercise_id, {
+          exerciseId: set.exercise_id,
+          name: translateExerciseName(exercise?.name, i18n.language) || t('log.unknown'),
+          sets: [],
+        })
+      }
+      byId.get(set.exercise_id).sets.push(set)
+    }
+
+    for (const group of byId.values()) {
+      group.sets.sort((a, b) => a.set_number - b.set_number)
+    }
+
+    return [...byId.values()]
+  }, [log?.sets, exerciseById, t])
+
+  const allSets = groups.flatMap((g) => g.sets)
+  const totalVolume = allSets.reduce((sum, s) => sum + s.weight * s.reps, 0)
+  const totalSets = allSets.length
   const dateLabel = new Date(date + 'T00:00:00').toLocaleDateString(i18n.language === 'ja' ? 'ja-JP' : 'ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
 
   if (isLoading) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#3730A3" /></View>
@@ -106,7 +154,15 @@ export default function LogScreen({ route }) {
         <View style={styles.pageHeader}>
           <Text style={styles.pageLabel}>{t('log.label')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.pageTitle}>{dateLabel}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {/* 스택으로 열린 경우(캘린더에서 날짜 선택)에는 돌아갈 길을 만든다 */}
+              {isDetail && navigation?.canGoBack?.() && (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                  <Ionicons name="chevron-back" size={20} color="#475569" />
+                </TouchableOpacity>
+              )}
+              <Text style={styles.pageTitle}>{dateLabel}</Text>
+            </View>
             {log && <TouchableOpacity onPress={() => setDeleteLogOpen(true)}><Text style={styles.deleteText}>{t('common.delete')}</Text></TouchableOpacity>}
           </View>
         </View>
@@ -127,12 +183,12 @@ export default function LogScreen({ route }) {
             </TouchableOpacity>
           )}
 
-          {Object.keys(grouped).length === 0 && pendingExercises.length === 0 && (
+          {groups.length === 0 && pendingExercises.length === 0 && (
             <Text style={styles.emptyText}>{t('log.empty')}</Text>
           )}
 
-          {Object.entries(grouped).map(([name, sets]) => (
-            <View key={name} style={styles.exerciseGroup}>
+          {groups.map(({ exerciseId, name, sets }) => (
+            <View key={exerciseId} style={styles.exerciseGroup}>
               <View style={styles.exerciseHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={styles.exerciseName}>{name}</Text>
@@ -140,11 +196,11 @@ export default function LogScreen({ route }) {
                     <Ionicons name="trash-outline" size={13} color="#cbd5e1" />
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => { setSelectedExercise(String(sets[0].exercise_id)); setSetForm({ reps: '', weight: '' }); setAddOpen(true) }}>
+                <TouchableOpacity onPress={() => openAddSheet(exerciseId)}>
                   <Text style={styles.addSetText}>+ {t('log.addSet')}</Text>
                 </TouchableOpacity>
               </View>
-              {sets.sort((a, b) => a.set_number - b.set_number).map((set) => {
+              {sets.map((set) => {
                 const orm = calc1RM(set.weight, set.reps)
                 return (
                   <View key={set.id} style={styles.setRow}>
@@ -154,7 +210,7 @@ export default function LogScreen({ route }) {
                       {orm && <Text style={styles.orm}>EST. 1RM: {orm}kg</Text>}
                     </View>
                     <View style={{ flexDirection: 'row', gap: 4 }}>
-                      <TouchableOpacity style={styles.iconBtn} onPress={() => { setEditingSet(set); setEditForm({ reps: String(set.reps), weight: String(set.weight) }); setEditOpen(true) }}>
+                      <TouchableOpacity style={styles.iconBtn} onPress={() => { setEditingSet(set); setEditForm({ reps: String(set.reps), weight: String(set.weight) }); setEditError(''); setEditOpen(true) }}>
                         <Ionicons name="pencil-outline" size={13} color="#94a3b8" />
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.iconBtn} onPress={() => removeLogSet(set.id)}>
@@ -173,13 +229,13 @@ export default function LogScreen({ route }) {
                 <Text style={styles.pendingName}>{translateExerciseName(ex.name, i18n.language)}</Text>
                 <Text style={styles.pendingCat}>{translateCategory(ex.category, i18n.language)}</Text>
               </View>
-              <TouchableOpacity style={styles.pendingBtn} onPress={() => { setSelectedExercise(String(ex.id)); setSetForm({ reps: '', weight: '' }); setAddOpen(true) }}>
+              <TouchableOpacity style={styles.pendingBtn} onPress={() => openAddSheet(ex.id)}>
                 <Text style={styles.pendingBtnText}>+ {t('log.addSet')}</Text>
               </TouchableOpacity>
             </View>
           ))}
 
-          <TouchableOpacity style={styles.addExBtn} onPress={() => { setSelectedExercise(''); setSetForm({ reps: '', weight: '' }); setAddOpen(true) }}>
+          <TouchableOpacity style={styles.addExBtn} onPress={() => openAddSheet()}>
             <Ionicons name="add" size={16} color="#fff" />
             <Text style={styles.addExBtnText}>{t('log.addExercise')}</Text>
           </TouchableOpacity>
@@ -230,8 +286,9 @@ export default function LogScreen({ route }) {
             </ScrollView>
           </>
         )}
-        <TextInput style={sheetStyles.input} placeholder={t('log.weight')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={setForm.weight} onChangeText={(v) => setSetForm({ ...setForm, weight: v })} />
-        <TextInput style={sheetStyles.input} placeholder={t('log.reps')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={setForm.reps} onChangeText={(v) => setSetForm({ ...setForm, reps: v })} />
+        <TextInput style={sheetStyles.input} placeholder={t('log.weight')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={setForm.weight} onChangeText={(v) => { setSetForm({ ...setForm, weight: v }); setAddError('') }} />
+        <TextInput style={sheetStyles.input} placeholder={t('log.reps')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={setForm.reps} onChangeText={(v) => { setSetForm({ ...setForm, reps: v }); setAddError('') }} />
+        {!!addError && <Text style={styles.formError}>{addError}</Text>}
         <View style={sheetStyles.btnRow}>
           <TouchableOpacity style={sheetStyles.cancelBtn} onPress={() => setAddOpen(false)}><Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text></TouchableOpacity>
           <TouchableOpacity style={[sheetStyles.confirmBtn, (!selectedExercise || !setForm.reps || !setForm.weight) && sheetStyles.confirmBtnDisabled]} onPress={handleAddSet} disabled={!selectedExercise || !setForm.reps || !setForm.weight}>
@@ -242,8 +299,9 @@ export default function LogScreen({ route }) {
 
       <BottomSheet visible={editOpen} onClose={() => setEditOpen(false)}>
         <Text style={sheetStyles.title}>{editingSet?.set_number} {t('log.editSet')}</Text>
-        <TextInput style={sheetStyles.input} placeholder={t('log.weight')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.weight} onChangeText={(v) => setEditForm({ ...editForm, weight: v })} />
-        <TextInput style={sheetStyles.input} placeholder={t('log.reps')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.reps} onChangeText={(v) => setEditForm({ ...editForm, reps: v })} />
+        <TextInput style={sheetStyles.input} placeholder={t('log.weight')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.weight} onChangeText={(v) => { setEditForm({ ...editForm, weight: v }); setEditError('') }} />
+        <TextInput style={sheetStyles.input} placeholder={t('log.reps')} placeholderTextColor="#94a3b8" keyboardType="numeric" value={editForm.reps} onChangeText={(v) => { setEditForm({ ...editForm, reps: v }); setEditError('') }} />
+        {!!editError && <Text style={styles.formError}>{editError}</Text>}
         <View style={sheetStyles.btnRow}>
           <TouchableOpacity style={sheetStyles.cancelBtn} onPress={() => setEditOpen(false)}><Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text></TouchableOpacity>
           <TouchableOpacity style={[sheetStyles.confirmBtn, (!editForm.reps || !editForm.weight) && sheetStyles.confirmBtnDisabled]} onPress={handleUpdateSet} disabled={!editForm.reps || !editForm.weight}>
@@ -282,6 +340,7 @@ const styles = StyleSheet.create({
   pageLabel: { fontSize: 10, fontWeight: '700', color: '#94a3b8', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 },
   pageTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginTop: 2 },
   deleteText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+  backBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, gap: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
   memo: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 14, color: '#0f172a', minHeight: 70 },
   saveBtn: { alignSelf: 'flex-end', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#f1f5f9' },
@@ -322,6 +381,7 @@ const styles = StyleSheet.create({
   catFilterText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   catFilterTextActive: { color: '#fff' },
   deleteDesc: { fontSize: 14, color: '#475569' },
+  formError: { fontSize: 13, color: '#dc2626', marginTop: -4 },
   tmplItem: { padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0' },
   tmplName: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
   tmplSub: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
