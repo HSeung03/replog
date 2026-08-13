@@ -1,7 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useQueryClient } from '@tanstack/react-query'
 import { clearLocalData } from '../db/localDB'
+import { setUnauthorizedHandler } from '../api/axios'
+import { getMe } from '../api/auth'
 
 const AuthContext = createContext(null)
 
@@ -59,6 +61,35 @@ export function AuthProvider({ children }) {
     setToken(null)
     setUser(null)
   }
+
+  // 서버가 토큰을 더 이상 받아주지 않을 때(401) 끊는 경로.
+  //
+  // 여기서는 로컬 DB를 지우지 않는다. 아직 서버에 올리지 못한 기록이
+  // 남아 있을 수 있고, 사용자가 고른 것도 아닌 로그아웃으로 그걸 날리면
+  // 되돌릴 방법이 없다. 다른 계정으로 로그인하면 login()이 그때 지운다.
+  const endSession = useCallback(async () => {
+    await AsyncStorage.multiRemove(['auth_token', 'auth_user'])
+    queryClient.clear()
+    setToken(null)
+    setUser(null)
+  }, [queryClient])
+
+  useEffect(() => {
+    setUnauthorizedHandler(endSession)
+    return () => setUnauthorizedHandler(null)
+  }, [endSession])
+
+  // 저장된 토큰이 있다는 것만으로 로그인 상태로 판정하면, 서버에서 토큰이
+  // 사라진 뒤에도 정상 화면이 뜨고 모든 요청만 조용히 실패한다.
+  // 부팅 직후 한 번 확인한다. 실패해도 화면을 막지 않는다 - 오프라인이면
+  // 네트워크 오류로 끝나고(응답이 없으니 인터셉터도 반응하지 않는다),
+  // 401일 때만 위 핸들러가 세션을 끊는다.
+  const validated = useRef(false)
+  useEffect(() => {
+    if (!token || validated.current) return
+    validated.current = true
+    getMe().catch(() => {})
+  }, [token])
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading }}>
