@@ -139,7 +139,9 @@ export default function LogScreen({ route, navigation }) {
     }
 
     return [...byId.values()]
-  }, [log?.sets, exerciseById, t])
+    // i18n.language를 의존성에 넣어야 언어를 바꿨을 때 종목 이름이 따라온다.
+    // (이전에는 매 렌더마다 다시 계산해서 자연히 갱신됐다)
+  }, [log?.sets, exerciseById, t, i18n.language])
 
   const allSets = groups.flatMap((g) => g.sets)
   const totalVolume = allSets.reduce((sum, s) => sum + s.weight * s.reps, 0)
