@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,7 +10,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -33,7 +33,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => '회원가입 성공',
             'token'   => $token,
-            'user'    => $user,
+            'user'    => UserResource::make($user),
         ], 201);
     }
 
@@ -57,7 +57,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => '로그인 성공',
             'token'   => $token,
-            'user'    => $user,
+            'user'    => UserResource::make($user),
         ]);
     }
 
@@ -72,7 +72,7 @@ class AuthController extends Controller
     // 로그인 유저 정보
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json(UserResource::make($request->user()));
     }
 
     // 모바일 구글 로그인 (id_token 방식)
@@ -142,40 +142,11 @@ class AuthController extends Controller
             return response()->json([
                 'message' => '로그인 성공',
                 'token'   => $token,
-                'user'    => $user,
+                'user'    => UserResource::make($user),
             ]);
         } catch (\Exception $e) {
             Log::error('Google login exception', ['message' => $e->getMessage()]);
             return response()->json(['message' => '구글 로그인 실패'], 401);
-        }
-    }
-
-    // 구글 OAuth 리다이렉트
-    public function googleRedirect()
-    {
-        return Socialite::driver('google')->stateless()->redirect();
-    }
-
-    // 구글 OAuth 콜백
-    public function googleCallback()
-    {
-        try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
-
-            $user = User::updateOrCreate(
-                ['email' => $googleUser->getEmail()],
-                [
-                    'name'              => $googleUser->getName(),
-                    'google_id'         => $googleUser->getId(),
-                    'password'          => Hash::make(str()->random(24)),
-                ]
-            );
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/?token=' . $token);
-        } catch (\Exception $e) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5174') . '/login?error=oauth_failed');
         }
     }
 }
