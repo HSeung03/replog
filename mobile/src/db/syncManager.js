@@ -55,6 +55,32 @@ export const isPermanentFailure = (e) => {
 
 const isPermanent = (e) => e instanceof PermanentFailure || isPermanentFailure(e)
 
+/*
+ * 온라인이면 지금 보내고, 아니면 큐에 남긴다.
+ *
+ * useLog의 네 함수가 이 판단을 각자 조금씩 다르게 구현하고 있었고
+ * MO-01·02·03·07이 전부 그 차이에서 나왔다. 규칙은 하나다:
+ *
+ *   오프라인          → 큐에 적재
+ *   서버 호출 성공     → 끝
+ *   네트워크 실패      → 큐에 적재 (나중에 재시도)
+ *   4xx 실패          → 되돌리고 호출부에 알림 (재시도해도 같은 결과)
+ */
+export const flushOrQueue = async ({ remote, queue, rollback }) => {
+  const state = await NetInfo.fetch()
+  if (!state.isConnected) return queue()
+
+  try {
+    return await remote()
+  } catch (e) {
+    if (isPermanentFailure(e)) {
+      await rollback?.(e)
+      throw e
+    }
+    return queue()
+  }
+}
+
 const processQueueItem = async (action, payload) => {
   switch (action) {
     case 'createLog': {

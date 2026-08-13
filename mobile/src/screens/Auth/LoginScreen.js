@@ -30,7 +30,7 @@ export default function LoginScreen({ navigation }) {
       await login(res.data.token, res.data.user)
     } catch (e) {
       if (e.code === statusCodes.SIGN_IN_CANCELLED) return
-      setError('구글 로그인에 실패했습니다.')
+      setError(t('login.errors.googleFailed'))
     } finally {
       setGoogleLoading(false)
     }
@@ -91,7 +91,7 @@ export default function LoginScreen({ navigation }) {
 
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>또는</Text>
+        <Text style={styles.dividerText}>{t('login.or')}</Text>
         <View style={styles.dividerLine} />
       </View>
 
@@ -99,7 +99,7 @@ export default function LoginScreen({ navigation }) {
         {googleLoading ? <ActivityIndicator color="#334155" /> : (
           <View style={styles.googleBtnInner}>
             <Image source={require('../../../assets/google-logo.png')} style={styles.googleLogo} />
-            <Text style={styles.googleBtnText}>Google로 로그인</Text>
+            <Text style={styles.googleBtnText}>{t('login.googleLogin')}</Text>
           </View>
         )}
       </TouchableOpacity>

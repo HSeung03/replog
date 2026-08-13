@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\ExerciseResource;
 use App\Models\Exercise;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ExerciseController extends Controller
 {
@@ -25,7 +26,7 @@ class ExerciseController extends Controller
     {
         $request->validate([
             'name'     => 'required|string|max:255',
-            'category' => 'required|in:가슴,등,하체,어깨,팔,유산소',
+            'category' => ['required', Rule::in(config('exercises.categories'))],
         ]);
 
         $exercise = Exercise::create([
