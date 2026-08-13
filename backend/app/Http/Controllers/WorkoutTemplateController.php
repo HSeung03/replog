@@ -2,12 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TemplateExercise;
+use App\Models\Exercise;
 use App\Models\WorkoutTemplate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WorkoutTemplateController extends Controller
 {
+    /*
+     * exercises 배열을 belongsToMany::sync()가 받는 형태로 바꾼다.
+     * [['exercise_id' => 3], ...] → [3 => ['sort_order' => 1], ...]
+     *
+     * 같은 종목이 두 번 들어오면 키가 겹쳐 하나로 합쳐진다. 원래도 한 템플릿에
+     * 같은 종목을 두 번 담을 이유가 없고, 이전 구현은 중복 행을 그대로 만들었다.
+     */
+    private function pivotPayload(array $exercises): array
+    {
+        $payload = [];
+
+        foreach (array_values($exercises) as $index => $item) {
+            $payload[$item['exercise_id']] = ['sort_order' => $index + 1];
+        }
+
+        return $payload;
+    }
+
     // 내 템플릿 목록
     public function index(Request $request)
     {
@@ -24,21 +43,20 @@ class WorkoutTemplateController extends Controller
         $request->validate([
             'name'       => 'required|string|max:255',
             'exercises'  => 'array',
-            'exercises.*.exercise_id' => 'required|exists:exercises,id',
+            'exercises.*.exercise_id' => ['required', Exercise::accessibleRule($request->user()->id)],
         ]);
 
-        $template = WorkoutTemplate::create([
-            'user_id' => $request->user()->id,
-            'name'    => $request->name,
-        ]);
-
-        foreach ($request->exercises ?? [] as $index => $item) {
-            TemplateExercise::create([
-                'template_id' => $template->id,
-                'exercise_id' => $item['exercise_id'],
-                'sort_order'  => $index + 1,
+        // 템플릿만 만들어지고 종목은 비어 있는 상태로 남지 않도록 한 트랜잭션에 묶는다.
+        $template = DB::transaction(function () use ($request) {
+            $template = WorkoutTemplate::create([
+                'user_id' => $request->user()->id,
+                'name'    => $request->name,
             ]);
-        }
+
+            $template->exercises()->sync($this->pivotPayload($request->exercises ?? []));
+
+            return $template;
+        });
 
         return response()->json($template->load('exercises'), 201);
     }
@@ -63,24 +81,21 @@ class WorkoutTemplateController extends Controller
         $request->validate([
             'name'       => 'sometimes|string|max:255',
             'exercises'  => 'array',
-            'exercises.*.exercise_id' => 'required|exists:exercises,id',
+            'exercises.*.exercise_id' => ['required', Exercise::accessibleRule($request->user()->id)],
         ]);
 
-        if ($request->has('name')) {
-            $workoutTemplate->update(['name' => $request->name]);
-        }
-
-        if ($request->has('exercises')) {
-            // 기존 종목 삭제 후 재등록
-            TemplateExercise::where('template_id', $workoutTemplate->id)->delete();
-            foreach ($request->exercises as $index => $item) {
-                TemplateExercise::create([
-                    'template_id' => $workoutTemplate->id,
-                    'exercise_id' => $item['exercise_id'],
-                    'sort_order'  => $index + 1,
-                ]);
+        // 이전에는 전체 삭제 후 루프로 재등록했다. 루프 중간에 예외가 나면
+        // 템플릿의 종목이 전부 사라진 채로 남았고 되돌릴 지점이 없었다.
+        // sync()는 차이만 반영하고, 트랜잭션이 중간 실패를 되돌린다.
+        DB::transaction(function () use ($request, $workoutTemplate) {
+            if ($request->has('name')) {
+                $workoutTemplate->update(['name' => $request->name]);
             }
-        }
+
+            if ($request->has('exercises')) {
+                $workoutTemplate->exercises()->sync($this->pivotPayload($request->exercises));
+            }
+        });
 
         return response()->json($workoutTemplate->load('exercises'));
     }
