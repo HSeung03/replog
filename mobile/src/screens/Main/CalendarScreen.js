@@ -6,8 +6,6 @@ import { useTranslation } from 'react-i18next'
 import useCalendar from '../../hooks/useCalendar'
 import { toDateStr } from '../../utils/date'
 
-const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
-
 function buildCalendar(year, month) {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
@@ -29,8 +27,9 @@ export default function CalendarScreen({ navigation }) {
   const days = buildCalendar(current.year, current.month)
   const todayStr = toDateStr(now)
   const DAYS = t('calendar.days', { returnObjects: true })
+  const MONTHS = t('calendar.months', { returnObjects: true })
   const monthLabel = `${MONTHS[current.month]} ${current.year}`
-  const activityText = sessionCount > 0 ? `이번 달 ${sessionCount}회 운동했어요` : t('calendar.noRecord')
+  const activityText = sessionCount > 0 ? t('calendar.monthCount', { count: sessionCount }) : t('calendar.noRecord')
 
   return (
     <SafeAreaView style={styles.safe}>

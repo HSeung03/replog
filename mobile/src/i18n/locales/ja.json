@@ -22,6 +22,7 @@
     "loginButton": "ログイン",
     "loggingIn": "ログイン中...",
     "googleLogin": "Googleで続ける",
+    "or": "または",
     "noAccount": "アカウントをお持ちでないですか？",
     "register": "新規登録",
     "errors": {
@@ -56,7 +57,9 @@
     "title": "カレンダー",
     "monthlyActivity": "今月の活動",
     "days": ["月", "火", "水", "木", "金", "土", "日"],
-    "noRecord": "今月の記録はありません"
+    "noRecord": "今月の記録はありません",
+    "monthCount": "今月{{count}}回トレーニングしました",
+    "months": ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
   },
   "exercises": {
     "title": "種目",
