@@ -45,11 +45,15 @@ export const syncPendingQueue = async () => {
 
 // 4xx는 요청 자체가 잘못됐다는 뜻이라 재시도해도 같은 응답이 온다.
 // (408 요청 시간초과와 429 요청량 초과는 시간이 지나면 통과할 수 있다)
-const isPermanent = (e) => {
-  if (e instanceof PermanentFailure) return true
+//
+// 큐에 넣기 전에도 같은 판단이 필요해서 밖으로 내보낸다. 422를 큐에 넣으면
+// 화면에는 저장된 것처럼 보이면서 서버에는 영영 올라가지 않는다.
+export const isPermanentFailure = (e) => {
   const status = e?.response?.status
   return !!status && status >= 400 && status < 500 && status !== 408 && status !== 429
 }
+
+const isPermanent = (e) => e instanceof PermanentFailure || isPermanentFailure(e)
 
 const processQueueItem = async (action, payload) => {
   switch (action) {

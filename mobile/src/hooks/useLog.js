@@ -6,7 +6,7 @@ import {
   updateLogServerId, updateSetServerId, addToSyncQueue, reconcileServerLog,
   cancelQueuedSetOperations, cancelQueuedLogOperations,
 } from '../db/localDB'
-import { syncPendingQueue } from '../db/syncManager'
+import { syncPendingQueue, isPermanentFailure } from '../db/syncManager'
 import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../api/workoutLogs'
 
 const toUILog = (localLog, sets) => ({
@@ -160,7 +160,17 @@ export default function useLog(date) {
           sets: prev.sets.map(s => s.local_id === localSetId ? { ...s, id: res.data.id } : s),
         } : prev)
       } catch (e) {
-        // 서버 실패 시 큐에 저장 (logLocalId로 저장해서 동기화 시 최신 server_id 조회)
+        // 서버가 거절한 요청(422 등)은 다시 보내도 결과가 같다. 큐에 넣으면
+        // 화면에는 추가된 것처럼 보이면서 서버에는 영영 올라가지 않는다.
+        // 로컬 흔적을 지우고 호출부가 사용자에게 알릴 수 있게 던진다.
+        if (isPermanentFailure(e)) {
+          await deleteLocalSet(localSetId)
+          await cancelQueuedSetOperations(localSetId)
+          setLog(prev => prev ? { ...prev, sets: prev.sets.filter(s => s.local_id !== localSetId) } : prev)
+          throw e
+        }
+
+        // 네트워크 실패는 큐에 저장 (logLocalId로 저장해서 동기화 시 최신 server_id 조회)
         await addToSyncQueue('addSet', {
           localSetId,
           logLocalId: localLog.local_id,
@@ -214,6 +224,18 @@ export default function useLog(date) {
         if (set?.local_id) await updateSetServerId(set.local_id, setId)
       } catch (e) {
         setLog(prevLog)
+
+        // 서버가 거절한 수정은 재시도해도 같은 응답이다. 화면과 로컬 DB를
+        // 되돌리고 호출부에 알린다.
+        if (isPermanentFailure(e)) {
+          if (set?.local_id) {
+            await updateLocalSet(set.local_id, { weight: set.weight, reps: set.reps })
+            // 서버 값과 같은 상태로 되돌렸으므로 "밀린 수정" 표시를 지운다.
+            await updateSetServerId(set.local_id, setId)
+          }
+          throw e
+        }
+
         await queueUpdate()
       }
     } else {
