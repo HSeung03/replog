@@ -6,7 +6,7 @@ import {
   updateLogServerId, updateSetServerId, addToSyncQueue, reconcileServerLog,
   cancelQueuedSetOperations, cancelQueuedLogOperations,
 } from '../db/localDB'
-import { syncPendingQueue, isPermanentFailure } from '../db/syncManager'
+import { syncPendingQueue, flushOrQueue } from '../db/syncManager'
 import { getLog, createLog, updateLog, deleteLog, addSet, updateSet, deleteSet } from '../api/workoutLogs'
 
 const toUILog = (localLog, sets) => ({
@@ -79,21 +79,24 @@ export default function useLog(date) {
         : { local_id: localLog.local_id, id: null, record_date: date, memo, sets: [] }
     )
 
-    const state = await NetInfo.fetch()
-    if (state.isConnected) {
-      if (localLog.server_id) {
-        await updateLog(localLog.server_id, { memo })
-        // 서버에 반영됐으므로 synced로 되돌린다. 그러지 않으면 이 행은
-        // 영원히 "밀린 수정"으로 남아 서버 메모를 다시 받아오지 못한다.
-        await updateLogServerId(localLog.local_id, localLog.server_id)
-      } else {
-        const res = await createLog({ record_date: date, memo })
-        await updateLogServerId(localLog.local_id, res.data.id)
-        setLog(prev => prev ? { ...prev, id: res.data.id } : prev)
-      }
-    } else {
-      await addToSyncQueue('createLog', { logLocalId: localLog.local_id, date, memo })
-    }
+    // 메모 저장 버튼도 예외를 잡지 않으므로 여기서 삼킨다.
+    try {
+      await flushOrQueue({
+        remote: async () => {
+          if (localLog.server_id) {
+            await updateLog(localLog.server_id, { memo })
+            // 서버에 반영됐으므로 synced로 되돌린다. 그러지 않으면 이 행은
+            // 영원히 "밀린 수정"으로 남아 서버 메모를 다시 받아오지 못한다.
+            await updateLogServerId(localLog.local_id, localLog.server_id)
+            return
+          }
+          const res = await createLog({ record_date: date, memo })
+          await updateLogServerId(localLog.local_id, res.data.id)
+          setLog(prev => prev ? { ...prev, id: res.data.id } : prev)
+        },
+        queue: () => addToSyncQueue('createLog', { logLocalId: localLog.local_id, date, memo }),
+      })
+    } catch {}
   }
 
   const removeLog = async () => {
@@ -143,9 +146,8 @@ export default function useLog(date) {
     )
 
     // 백그라운드 서버 동기화
-    const state = await NetInfo.fetch()
-    if (state.isConnected) {
-      try {
+    await flushOrQueue({
+      remote: async () => {
         let serverId = localLog.server_id
         if (!serverId) {
           const res = await createLog({ record_date: date, memo })
@@ -159,37 +161,24 @@ export default function useLog(date) {
           ...prev,
           sets: prev.sets.map(s => s.local_id === localSetId ? { ...s, id: res.data.id } : s),
         } : prev)
-      } catch (e) {
-        // 서버가 거절한 요청(422 등)은 다시 보내도 결과가 같다. 큐에 넣으면
-        // 화면에는 추가된 것처럼 보이면서 서버에는 영영 올라가지 않는다.
-        // 로컬 흔적을 지우고 호출부가 사용자에게 알릴 수 있게 던진다.
-        if (isPermanentFailure(e)) {
-          await deleteLocalSet(localSetId)
-          await cancelQueuedSetOperations(localSetId)
-          setLog(prev => prev ? { ...prev, sets: prev.sets.filter(s => s.local_id !== localSetId) } : prev)
-          throw e
-        }
-
-        // 네트워크 실패는 큐에 저장 (logLocalId로 저장해서 동기화 시 최신 server_id 조회)
-        await addToSyncQueue('addSet', {
-          localSetId,
-          logLocalId: localLog.local_id,
-          exerciseId,
-          setNumber,
-          weight: setData.weight,
-          reps: setData.reps,
-        })
-      }
-    } else {
-      await addToSyncQueue('addSet', {
+      },
+      // logLocalId로 담아둔다. 동기화 시점에 최신 server_id를 조회한다.
+      queue: () => addToSyncQueue('addSet', {
         localSetId,
         logLocalId: localLog.local_id,
         exerciseId,
         setNumber,
         weight: setData.weight,
         reps: setData.reps,
-      })
-    }
+      }),
+      // 서버가 거절한 요청은 다시 보내도 결과가 같다. 큐에 남기면 화면에는
+      // 추가된 것처럼 보이면서 서버에는 영영 올라가지 않는다.
+      rollback: async () => {
+        await deleteLocalSet(localSetId)
+        await cancelQueuedSetOperations(localSetId)
+        setLog(prev => prev ? { ...prev, sets: prev.sets.filter(s => s.local_id !== localSetId) } : prev)
+      },
+    })
   }
 
   const updateLogSet = async (setId, data) => {
@@ -217,30 +206,25 @@ export default function useLog(date) {
       return
     }
 
-    const state = await NetInfo.fetch()
-    if (state.isConnected && log?.id) {
-      try {
+    if (!log?.id) return queueUpdate()
+
+    await flushOrQueue({
+      remote: async () => {
         await updateSet(log.id, setId, data)
         if (set?.local_id) await updateSetServerId(set.local_id, setId)
-      } catch (e) {
+      },
+      queue: queueUpdate,
+      // 서버가 거절한 수정은 재시도해도 같은 응답이다. 화면과 로컬 DB를
+      // 되돌린다.
+      rollback: async () => {
         setLog(prevLog)
-
-        // 서버가 거절한 수정은 재시도해도 같은 응답이다. 화면과 로컬 DB를
-        // 되돌리고 호출부에 알린다.
-        if (isPermanentFailure(e)) {
-          if (set?.local_id) {
-            await updateLocalSet(set.local_id, { weight: set.weight, reps: set.reps })
-            // 서버 값과 같은 상태로 되돌렸으므로 "밀린 수정" 표시를 지운다.
-            await updateSetServerId(set.local_id, setId)
-          }
-          throw e
+        if (set?.local_id) {
+          await updateLocalSet(set.local_id, { weight: set.weight, reps: set.reps })
+          // 서버 값과 같은 상태로 되돌렸으므로 "밀린 수정" 표시를 지운다.
+          await updateSetServerId(set.local_id, setId)
         }
-
-        await queueUpdate()
-      }
-    } else {
-      await queueUpdate()
-    }
+      },
+    })
   }
 
   const removeLogSet = async (setId) => {
@@ -257,17 +241,19 @@ export default function useLog(date) {
 
     if (typeof setId !== 'number') return
 
-    const state = await NetInfo.fetch()
-    if (state.isConnected && log?.id) {
-      try {
-        await deleteSet(log.id, setId)
-      } catch (e) {
-        setLog(prevLog)
-        await addToSyncQueue('deleteSet', { logServerId: log.id, setServerId: setId })
-      }
-    } else {
-      await addToSyncQueue('deleteSet', { logServerId: log?.id, setServerId: setId })
-    }
+    const queueDelete = () => addToSyncQueue('deleteSet', { logServerId: log?.id, setServerId: setId })
+    if (!log?.id) return queueDelete()
+
+    // 서버가 거절했다면 그 세트는 이미 없거나 내 것이 아니다. 어느 쪽이든
+    // 화면만 되돌리고 큐에는 남기지 않는다. 삭제 버튼은 onPress에서 바로
+    // 부르므로 여기서 예외를 삼킨다.
+    try {
+      await flushOrQueue({
+        remote: () => deleteSet(log.id, setId),
+        queue: queueDelete,
+        rollback: () => setLog(prevLog),
+      })
+    } catch {}
   }
 
   const removeExerciseSets = async (sets) => {
@@ -283,18 +269,17 @@ export default function useLog(date) {
     const serverSets = sets.filter(s => typeof s.id === 'number')
     if (!serverSets.length || !log?.id) return
 
-    const state = await NetInfo.fetch()
-    if (state.isConnected) {
-      try {
-        await Promise.all(serverSets.map(s => deleteSet(log.id, s.id)))
-      } catch (e) {
-        setLog(prevLog)
-      }
-    } else {
-      for (const s of serverSets) {
-        await addToSyncQueue('deleteSet', { logServerId: log.id, setServerId: s.id })
-      }
-    }
+    try {
+      await flushOrQueue({
+        remote: () => Promise.all(serverSets.map(s => deleteSet(log.id, s.id))),
+        queue: async () => {
+          for (const s of serverSets) {
+            await addToSyncQueue('deleteSet', { logServerId: log.id, setServerId: s.id })
+          }
+        },
+        rollback: () => setLog(prevLog),
+      })
+    } catch {}
   }
 
   return { log, isLoading, saveLog, removeLog, addLogSet, updateLogSet, removeLogSet, removeExerciseSets }
