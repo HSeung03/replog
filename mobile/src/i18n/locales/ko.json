@@ -14,6 +14,15 @@
     "log": "기록",
     "profile": "프로필"
   },
+  "categories": {
+    "all": "전체",
+    "chest": "가슴",
+    "back": "등",
+    "legs": "하체",
+    "shoulders": "어깨",
+    "arms": "팔",
+    "cardio": "유산소"
+  },
   "login": {
     "title": "다시 만나서 반가워요",
     "subtitle": "운동 기록을 이어가세요",
@@ -72,16 +81,7 @@
     "deleteSimpleDesc": "'{{name}}'을(를) 목록에서 삭제합니다.",
     "deleteWarning": "'{{name}}'으로 기록한 세트 {{setCount}}개가 함께 삭제됩니다. 되돌릴 수 없습니다.",
     "deleteTemplateWarning": "이 종목이 포함된 템플릿 {{templateCount}}개에서도 빠집니다.",
-    "deleteFailed": "삭제하지 못했습니다. 잠시 후 다시 시도해주세요.",
-    "categories": {
-      "all": "전체",
-      "chest": "가슴",
-      "back": "등",
-      "legs": "하체",
-      "shoulders": "어깨",
-      "arms": "팔",
-      "cardio": "유산소"
-    }
+    "deleteFailed": "삭제하지 못했습니다. 잠시 후 다시 시도해주세요."
   },
   "log": {
     "label": "운동 기록",
@@ -125,14 +125,6 @@
     "editTitle": "템플릿 수정",
     "namePlaceholder": "템플릿 이름 (예: 월요일 가슴 루틴)",
     "categoryPlaceholder": "카테고리",
-    "exercisePlaceholder": "종목 선택",
-    "categories": {
-      "chest": "가슴",
-      "back": "등",
-      "legs": "하체",
-      "shoulders": "어깨",
-      "arms": "팔",
-      "cardio": "유산소"
-    }
+    "exercisePlaceholder": "종목 선택"
   }
 }

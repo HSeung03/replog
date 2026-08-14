@@ -1,9 +1,16 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native'
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import { login as loginApi, googleLogin as googleLoginApi } from '../../api/auth'
-import { useTranslation } from 'react-i18next'
+import useAuthForm from '../../hooks/useAuthForm'
+import { isEmail } from '../../utils/validation'
+import AuthLayout from '../../components/AuthLayout'
+import TextField from '../../components/TextField'
+import Button from '../../components/Button'
+import ErrorText from '../../components/ErrorText'
+import { colors, radius } from '../../theme'
 
 GoogleSignin.configure({
   iosClientId: '233986109518-cqhebgq5knmkqqil53fvg23ssdd80qjt.apps.googleusercontent.com',
@@ -11,12 +18,21 @@ GoogleSignin.configure({
 })
 
 export default function LoginScreen({ navigation }) {
-  const { login } = useAuth()
   const { t } = useTranslation()
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
   const [googleLoading, setGoogleLoading] = useState(false)
+
+  const { form, setField, error, setError, loading, submit } = useAuthForm({
+    initialValues: { email: '', password: '' },
+    validate: ({ email, password }) => {
+      if (!email || !password) return 'login.errors.emptyFields'
+      if (!isEmail(email)) return 'login.errors.invalidEmail'
+    },
+    request: (values) => loginApi(values),
+    // 401도 422도 사용자 입장에서는 "아이디나 비밀번호가 틀렸다"는 같은 말이다.
+    errorMessage: (err) =>
+      [401, 422].includes(err.response.status) ? t('login.errors.wrongCredentials') : null,
+  })
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -29,6 +45,7 @@ export default function LoginScreen({ navigation }) {
       const res = await googleLoginApi(idToken)
       await login(res.data.token, res.data.user)
     } catch (e) {
+      // 사용자가 스스로 닫은 창은 오류가 아니다.
       if (e.code === statusCodes.SIGN_IN_CANCELLED) return
       setError(t('login.errors.googleFailed'))
     } finally {
@@ -36,99 +53,68 @@ export default function LoginScreen({ navigation }) {
     }
   }
 
-  const handleSubmit = async () => {
-    setError('')
-    if (!form.email || !form.password) { setError(t('login.errors.emptyFields')); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { setError(t('login.errors.invalidEmail')); return }
-
-    setLoading(true)
-    try {
-      const res = await loginApi(form)
-      await login(res.data.token, res.data.user)
-    } catch (err) {
-      if (!err.response) setError(t('common.serverError'))
-      else if (err.response.status === 401 || err.response.status === 422) setError(t('login.errors.wrongCredentials'))
-      else setError(t('common.error'))
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
-        <Text style={styles.logo}>Replog</Text>
-        <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>{t('login.email')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="your@email.com"
-          placeholderTextColor="#94a3b8"
-          value={form.email}
-          onChangeText={(v) => setForm({ ...form, email: v })}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <Text style={styles.label}>{t('login.password')}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="••••••••"
-          placeholderTextColor="#94a3b8"
-          value={form.password}
-          onChangeText={(v) => setForm({ ...form, password: v })}
-          secureTextEntry
-        />
-
-        {!!error && <Text style={styles.error}>{error}</Text>}
-
-        <TouchableOpacity style={styles.btn} onPress={handleSubmit} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('login.loginButton')}</Text>}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.dividerRow}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>{t('login.or')}</Text>
-        <View style={styles.dividerLine} />
-      </View>
-
-      <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
-        {googleLoading ? <ActivityIndicator color="#334155" /> : (
-          <View style={styles.googleBtnInner}>
-            <Image source={require('../../../assets/google-logo.png')} style={styles.googleLogo} />
-            <Text style={styles.googleBtnText}>{t('login.googleLogin')}</Text>
+    <AuthLayout
+      subtitle={t('login.subtitle')}
+      footer={
+        <>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('login.or')}</Text>
+            <View style={styles.dividerLine} />
           </View>
-        )}
-      </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>{t('login.noAccount')} <Text style={styles.linkBold}>{t('login.register')}</Text></Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+          <Button variant="outline" style={styles.googleBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
+            {googleLoading ? (
+              <ActivityIndicator color={colors.textBody} />
+            ) : (
+              <View style={styles.googleBtnInner}>
+                <Image source={require('../../../assets/google-logo.png')} style={styles.googleLogo} />
+                <Text style={styles.googleBtnText}>{t('login.googleLogin')}</Text>
+              </View>
+            )}
+          </Button>
+
+          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <Text style={styles.link}>
+              {t('login.noAccount')} <Text style={styles.linkBold}>{t('login.register')}</Text>
+            </Text>
+          </TouchableOpacity>
+        </>
+      }
+    >
+      <TextField
+        label={t('login.email')}
+        placeholder="your@email.com"
+        value={form.email}
+        onChangeText={(v) => setField('email', v)}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      <TextField
+        label={t('login.password')}
+        placeholder="••••••••"
+        value={form.password}
+        onChangeText={(v) => setField('password', v)}
+        secureTextEntry
+      />
+
+      <ErrorText centered>{error}</ErrorText>
+
+      <Button style={styles.submit} title={t('login.loginButton')} onPress={submit} loading={loading} />
+    </AuthLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  header: { alignItems: 'center', marginBottom: 32 },
-  logo: { fontSize: 36, fontWeight: '800', color: '#3730A3' },
-  subtitle: { fontSize: 14, color: '#94a3b8', marginTop: 6 },
-  card: { width: '100%', backgroundColor: '#fff', borderRadius: 20, padding: 24, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3 },
-  label: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, fontSize: 14, color: '#0f172a' },
-  error: { fontSize: 12, color: '#ef4444', textAlign: 'center', marginTop: 8 },
-  btn: { backgroundColor: '#1E1B4B', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 20 },
-  btnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  submit: { marginTop: 20 },
   dividerRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
-  dividerText: { marginHorizontal: 12, fontSize: 12, color: '#94a3b8' },
-  googleBtn: { width: '100%', backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { marginHorizontal: 12, fontSize: 12, color: colors.textFaint },
+  googleBtn: { width: '100%', borderRadius: radius.lg, marginTop: 12 },
   googleBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   googleLogo: { width: 20, height: 20 },
-  googleBtnText: { fontSize: 14, fontWeight: '700', color: '#334155' },
-  link: { marginTop: 20, fontSize: 13, color: '#94a3b8' },
-  linkBold: { color: '#3730A3', fontWeight: '700' },
+  googleBtnText: { fontSize: 14, fontWeight: '700', color: colors.textBody },
+  link: { marginTop: 20, fontSize: 13, color: colors.textFaint },
+  linkBold: { color: colors.primary, fontWeight: '700' },
 })
