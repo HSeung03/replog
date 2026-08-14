@@ -1,21 +1,30 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, ScrollView } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
-import ScreenHeader from '../../components/ScreenHeader'
-import BottomSheet, { sheetStyles } from '../../components/BottomSheet'
 import useExercises from '../../hooks/useExercises'
+import useDisclosure from '../../hooks/useDisclosure'
+import useExerciseLabel from '../../hooks/useExerciseLabel'
+import Screen from '../../components/Screen'
+import ScreenHeader from '../../components/ScreenHeader'
+import BottomSheet, { SheetTitle, SheetActions } from '../../components/BottomSheet'
+import ConfirmSheet from '../../components/ConfirmSheet'
+import CategoryFilter, { ALL } from '../../components/CategoryFilter'
+import TextField from '../../components/TextField'
 import { CATEGORY_KEYS, CATEGORY_VALUES, BADGE_COLORS, BADGE_TEXT } from '../../constants/categories'
-import i18n from '../../i18n'
-import { translateExerciseName, translateCategory } from '../../i18n/exerciseNames'
+import { colors, common, radius } from '../../theme'
+
+const DEFAULT_CATEGORY = CATEGORY_KEYS[0]
 
 export default function ExercisesScreen({ navigation }) {
   const { t } = useTranslation()
   const { exercises, create, remove } = useExercises()
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [modalOpen, setModalOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', category: '가슴' })
+  const { exerciseName, categoryName } = useExerciseLabel()
+
+  const [selectedCategory, setSelectedCategory] = useState(ALL)
+
+  const addSheet = useDisclosure()
+  const [form, setForm] = useState({ name: '', category: DEFAULT_CATEGORY })
 
   // 삭제는 2단계다. 먼저 확인만 받고, 기록이 딸린 종목이면 서버가 409로
   // 삭제될 개수를 알려준다. 그때 경고를 보여주고 한 번 더 확인받는다.
@@ -24,11 +33,21 @@ export default function ExercisesScreen({ navigation }) {
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
 
+  const openAdd = () => {
+    setForm({ name: '', category: DEFAULT_CATEGORY })
+    addSheet.open()
+  }
+
   const handleCreate = async () => {
     if (!form.name) return
-    await create(form)
-    setModalOpen(false)
-    setForm({ name: '', category: '가슴' })
+    try {
+      // 서버는 아직 카테고리를 한국어 값으로 저장한다(constants/categories 참고).
+      await create({ name: form.name, category: CATEGORY_VALUES[form.category] })
+    } catch {
+      // 실패하면 목록에서 사라진다. 시트는 열어 둔 채로 둔다.
+      return
+    }
+    addSheet.close()
   }
 
   const openDelete = (exercise) => {
@@ -66,39 +85,48 @@ export default function ExercisesScreen({ navigation }) {
     }
   }
 
-  const filtered = selectedCategory === 'all' ? exercises : exercises.filter((ex) => ex.category === CATEGORY_VALUES[selectedCategory])
+  const filtered = selectedCategory === ALL
+    ? exercises
+    : exercises.filter((ex) => ex.category === CATEGORY_VALUES[selectedCategory])
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScreenHeader label={t('exercises.subtitle')} title={t('exercises.title')} onBack={() => navigation.goBack()} onRight={() => setModalOpen(true)} />
+    <Screen>
+      <ScreenHeader
+        label={t('exercises.subtitle')}
+        title={t('exercises.title')}
+        onBack={() => navigation.goBack()}
+        onRight={openAdd}
+      />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-        {['all', ...CATEGORY_KEYS].map((key) => (
-          <TouchableOpacity key={key} onPress={() => setSelectedCategory(key)} style={[styles.filterBtn, selectedCategory === key && styles.filterBtnActive]}>
-            <Text style={[styles.filterText, selectedCategory === key && styles.filterTextActive]}>{t(`exercises.categories.${key}`)}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <CategoryFilter
+        size="lg"
+        value={selectedCategory}
+        onChange={setSelectedCategory}
+        style={styles.filterScroll}
+      />
 
       <FlatList
         data={filtered}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.empty}>{t('exercises.noExercises')}</Text>}
+        ListEmptyComponent={<Text style={common.empty}>{t('exercises.noExercises')}</Text>}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemName}>{translateExerciseName(item.name, i18n.language)}</Text>
+            <View style={common.fill}>
+              <Text style={styles.itemName}>{exerciseName(item.name)}</Text>
               {!!item.is_default && <Text style={styles.defaultBadge}>DEFAULT</Text>}
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[styles.catBadge, { backgroundColor: BADGE_COLORS[item.category] ?? '#f1f5f9' }]}>
-                <Text style={[styles.catBadgeText, { color: BADGE_TEXT[item.category] ?? '#64748b' }]}>{translateCategory(item.category, i18n.language)}</Text>
+            <View style={styles.itemRight}>
+              <View style={[styles.catBadge, { backgroundColor: BADGE_COLORS[item.category] ?? colors.muted }]}>
+                <Text style={[styles.catBadgeText, { color: BADGE_TEXT[item.category] ?? colors.textMuted }]}>
+                  {categoryName(item.category)}
+                </Text>
               </View>
+              {/* 기본 종목은 지울 수 없다 */}
               {!item.is_default && (
                 <TouchableOpacity onPress={() => openDelete(item)}>
-                  <Ionicons name="trash-outline" size={14} color="#cbd5e1" />
+                  <Ionicons name="trash-outline" size={14} color={colors.textGhost} />
                 </TouchableOpacity>
               )}
             </View>
@@ -106,34 +134,43 @@ export default function ExercisesScreen({ navigation }) {
         )}
       />
 
-      <BottomSheet visible={modalOpen} onClose={() => setModalOpen(false)}>
-        <Text style={sheetStyles.title}>{t('exercises.addTitle')}</Text>
-        <TextInput style={sheetStyles.input} placeholder={t('exercises.namePlaceholder')} placeholderTextColor="#94a3b8" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
-        <View style={styles.catRow}>
-          {CATEGORY_KEYS.map((key) => (
-            <TouchableOpacity key={key} onPress={() => setForm({ ...form, category: CATEGORY_VALUES[key] })} style={[styles.catBtn, form.category === CATEGORY_VALUES[key] && styles.catBtnActive]}>
-              <Text style={[styles.catBtnText, form.category === CATEGORY_VALUES[key] && styles.catBtnTextActive]}>{t(`exercises.categories.${key}`)}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={sheetStyles.btnRow}>
-          <TouchableOpacity style={sheetStyles.cancelBtn} onPress={() => setModalOpen(false)}>
-            <Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[sheetStyles.confirmBtn, !form.name && sheetStyles.confirmBtnDisabled]} onPress={handleCreate} disabled={!form.name}>
-            <Text style={sheetStyles.confirmText}>{t('common.add')}</Text>
-          </TouchableOpacity>
-        </View>
+      <BottomSheet visible={addSheet.isOpen} onClose={addSheet.close}>
+        <SheetTitle>{t('exercises.addTitle')}</SheetTitle>
+        <TextField
+          variant="sheet"
+          placeholder={t('exercises.namePlaceholder')}
+          value={form.name}
+          onChangeText={(v) => setForm((prev) => ({ ...prev, name: v }))}
+        />
+        <CategoryFilter
+          wrap
+          size="sm"
+          includeAll={false}
+          value={form.category}
+          onChange={(category) => setForm((prev) => ({ ...prev, category }))}
+        />
+        <SheetActions
+          onCancel={addSheet.close}
+          onConfirm={handleCreate}
+          confirmLabel={t('common.add')}
+          confirmDisabled={!form.name}
+        />
       </BottomSheet>
 
-      <BottomSheet visible={!!deleteTarget} onClose={closeDelete}>
-        <Text style={sheetStyles.title}>{t('exercises.deleteTitle')}</Text>
-
+      <ConfirmSheet
+        visible={!!deleteTarget}
+        onClose={closeDelete}
+        onConfirm={handleDelete}
+        title={t('exercises.deleteTitle')}
+        confirmLabel={t('common.delete')}
+        error={deleteError}
+        busy={deleting}
+      >
         {deleteImpact ? (
           <View style={styles.warnBox}>
             <Text style={styles.warnText}>
               {t('exercises.deleteWarning', {
-                name: translateExerciseName(deleteTarget?.name, i18n.language),
+                name: exerciseName(deleteTarget?.name),
                 setCount: deleteImpact.setsCount,
               })}
             </Text>
@@ -145,55 +182,34 @@ export default function ExercisesScreen({ navigation }) {
           </View>
         ) : (
           <Text style={styles.deleteDesc}>
-            {t('exercises.deleteSimpleDesc', {
-              name: translateExerciseName(deleteTarget?.name, i18n.language),
-            })}
+            {t('exercises.deleteSimpleDesc', { name: exerciseName(deleteTarget?.name) })}
           </Text>
         )}
-
-        {!!deleteError && <Text style={styles.deleteError}>{deleteError}</Text>}
-
-        <View style={sheetStyles.btnRow}>
-          <TouchableOpacity style={sheetStyles.cancelBtn} onPress={closeDelete} disabled={deleting}>
-            <Text style={sheetStyles.cancelText}>{t('common.cancel')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[sheetStyles.dangerBtn, deleting && sheetStyles.confirmBtnDisabled]}
-            onPress={handleDelete}
-            disabled={deleting}
-          >
-            <Text style={sheetStyles.confirmText}>{t('common.delete')}</Text>
-          </TouchableOpacity>
-        </View>
-      </BottomSheet>
-    </SafeAreaView>
+      </ConfirmSheet>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F2F4F7' },
   filterScroll: { paddingHorizontal: 16, marginBottom: 8, maxHeight: 44 },
-  filterContent: { gap: 8, paddingVertical: 4, alignItems: 'center' },
-  filterBtn: { paddingHorizontal: 16, height: 36, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', minWidth: 52, alignItems: 'center', justifyContent: 'center' },
-  filterBtnActive: { backgroundColor: '#1E1B4B', borderColor: '#1E1B4B' },
-  filterText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-  filterTextActive: { color: '#fff' },
   list: { paddingHorizontal: 16, paddingBottom: 20 },
-  empty: { textAlign: 'center', color: '#94a3b8', fontSize: 14, paddingVertical: 40 },
-  separator: { height: 1, backgroundColor: '#f8fafc', marginHorizontal: 4 },
-  item: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 14, marginBottom: 1 },
-  itemName: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  defaultBadge: { fontSize: 10, fontWeight: '700', color: '#94a3b8', marginTop: 2, letterSpacing: 1 },
-  catBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  separator: { height: 1, backgroundColor: colors.sunken, marginHorizontal: 4 },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    marginBottom: 1,
+  },
+  itemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  itemName: { fontSize: 14, fontWeight: '700', color: colors.text },
+  defaultBadge: { fontSize: 10, fontWeight: '700', color: colors.textFaint, marginTop: 2, letterSpacing: 1 },
+  catBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill },
   catBadgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  catBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f1f5f9' },
-  catBtnActive: { backgroundColor: '#1E1B4B' },
-  catBtnText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-  catBtnTextActive: { color: '#fff' },
-  deleteDesc: { fontSize: 14, color: '#475569' },
-  warnBox: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 14, gap: 6 },
-  warnText: { fontSize: 14, fontWeight: '600', color: '#b91c1c', lineHeight: 20 },
-  warnSub: { fontSize: 12, color: '#ef4444' },
-  deleteError: { fontSize: 12, color: '#ef4444', textAlign: 'center' },
+  deleteDesc: { fontSize: 14, color: colors.textSub },
+  warnBox: { backgroundColor: colors.dangerSoft, borderRadius: radius.md, padding: 14, gap: 6 },
+  warnText: { fontSize: 14, fontWeight: '600', color: colors.dangerDark, lineHeight: 20 },
+  warnSub: { fontSize: 12, color: colors.danger },
 })

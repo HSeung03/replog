@@ -2,9 +2,10 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { useAuth } from '../contexts/AuthContext'
-import { View, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
+import LoadingView from '../components/LoadingView'
+import { colors } from '../theme'
 
 import LoginScreen from '../screens/Auth/LoginScreen'
 import RegisterScreen from '../screens/Auth/RegisterScreen'
@@ -24,9 +25,9 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#fff', borderTopColor: '#e2e8f0' },
-        tabBarActiveTintColor: '#3730A3',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textFaint,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
       }}
     >
@@ -81,9 +82,7 @@ export default function AppNavigator() {
   const { token, loading } = useAuth()
   const isLoggedIn = !!token
 
-  if (loading) {
-    return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#3730A3" /></View>
-  }
+  if (loading) return <LoadingView />
 
   return (
     <NavigationContainer>

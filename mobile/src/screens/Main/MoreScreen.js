@@ -1,18 +1,32 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 import { logout } from '../../api/auth'
-import { useTranslation } from 'react-i18next'
-import i18n from '../../i18n'
+import Screen from '../../components/Screen'
+import { colors, common, radius, shadow } from '../../theme'
+
+// 메뉴 한 줄. 네 줄이 같은 구조를 각자 그리고 있었다.
+function MenuRow({ icon, title, description, onPress, danger = false, right }) {
+  return (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <View style={[styles.menuIcon, danger && styles.menuIconDanger]}>
+        <Ionicons name={icon} size={18} color={danger ? colors.danger : colors.primary} />
+      </View>
+      <View style={common.fill}>
+        <Text style={[styles.menuTitle, danger && styles.menuTitleDanger]}>{title}</Text>
+        <Text style={[styles.menuDesc, danger && styles.menuDescDanger]}>{description}</Text>
+      </View>
+      {right ?? <Ionicons name="chevron-forward" size={16} color={colors.textGhost} />}
+    </TouchableOpacity>
+  )
+}
 
 export default function MoreScreen({ navigation }) {
   const { user, logout: logoutAuth } = useAuth()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === 'ko' ? 'ja' : 'ko')
-  }
+  const toggleLanguage = () => i18n.changeLanguage(i18n.language === 'ko' ? 'ja' : 'ko')
 
   const handleLogout = async () => {
     try { await logout() } catch {}
@@ -21,7 +35,7 @@ export default function MoreScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <Screen>
       <View style={styles.container}>
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
@@ -32,75 +46,65 @@ export default function MoreScreen({ navigation }) {
         </View>
 
         <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Exercises')}>
-            <View style={styles.menuIcon}><Ionicons name="list" size={18} color="#3730A3" /></View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitle}>{t('more.exercises')}</Text>
-              <Text style={styles.menuDesc}>{t('more.exercisesDesc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
-          </TouchableOpacity>
-
+          <MenuRow
+            icon="list"
+            title={t('more.exercises')}
+            description={t('more.exercisesDesc')}
+            onPress={() => navigation.navigate('Exercises')}
+          />
           <View style={styles.divider} />
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Templates')}>
-            <View style={styles.menuIcon}><Ionicons name="apps" size={18} color="#3730A3" /></View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitle}>{t('more.templates')}</Text>
-              <Text style={styles.menuDesc}>{t('more.templatesDesc')}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#cbd5e1" />
-          </TouchableOpacity>
-
+          <MenuRow
+            icon="apps"
+            title={t('more.templates')}
+            description={t('more.templatesDesc')}
+            onPress={() => navigation.navigate('Templates')}
+          />
           <View style={styles.divider} />
-
-          <TouchableOpacity style={styles.menuItem} onPress={toggleLanguage}>
-            <View style={styles.menuIcon}><Ionicons name="language" size={18} color="#3730A3" /></View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitle}>{t('more.language')}</Text>
-              <Text style={styles.menuDesc}>{t('more.languageDesc')}</Text>
-            </View>
-            <View style={styles.langBadge}>
-              <Text style={styles.langBadgeText}>{i18n.language === 'ko' ? '한국어' : '日本語'}</Text>
-            </View>
-          </TouchableOpacity>
-
+          <MenuRow
+            icon="language"
+            title={t('more.language')}
+            description={t('more.languageDesc')}
+            onPress={toggleLanguage}
+            right={
+              <View style={styles.langBadge}>
+                <Text style={styles.langBadgeText}>{i18n.language === 'ko' ? '한국어' : '日本語'}</Text>
+              </View>
+            }
+          />
           <View style={styles.divider} />
-
-          <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-            <View style={[styles.menuIcon, styles.menuIconRed]}><Ionicons name="log-out-outline" size={18} color="#ef4444" /></View>
-            <View style={styles.menuText}>
-              <Text style={styles.menuTitleRed}>{t('more.logout')}</Text>
-              <Text style={styles.menuDescRed}>{t('more.logoutDesc')}</Text>
-            </View>
-          </TouchableOpacity>
+          <MenuRow
+            danger
+            icon="log-out-outline"
+            title={t('more.logout')}
+            description={t('more.logoutDesc')}
+            onPress={handleLogout}
+            right={<View />}
+          />
         </View>
 
         <Text style={styles.version}>Replog v1.0.0</Text>
       </View>
-    </SafeAreaView>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F2F4F7' },
   container: { flex: 1, padding: 16, gap: 12 },
-  profileCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  avatarText: { fontSize: 28, fontWeight: '800', color: '#3730A3' },
-  name: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  email: { fontSize: 14, color: '#94a3b8', marginTop: 4 },
-  menuCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  profileCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: 24, alignItems: 'center', ...shadow.card },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarText: { fontSize: 28, fontWeight: '800', color: colors.primary },
+  name: { fontSize: 18, fontWeight: '700', color: colors.text },
+  email: { fontSize: 14, color: colors.textFaint, marginTop: 4 },
+  menuCard: { backgroundColor: colors.surface, borderRadius: radius.xl, overflow: 'hidden', ...shadow.card },
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingVertical: 16 },
-  menuIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center' },
-  menuIconRed: { backgroundColor: '#fef2f2' },
-  menuText: { flex: 1 },
-  menuTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  menuDesc: { fontSize: 11, fontWeight: '600', color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  menuTitleRed: { fontSize: 14, fontWeight: '700', color: '#ef4444' },
-  menuDescRed: { fontSize: 11, fontWeight: '600', color: '#fca5a5', marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginHorizontal: 20 },
-  langBadge: { backgroundColor: '#eef2ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  langBadgeText: { fontSize: 12, fontWeight: '700', color: '#3730A3' },
-  version: { textAlign: 'center', fontSize: 10, fontWeight: '700', color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 2, paddingVertical: 8 },
+  menuIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  menuIconDanger: { backgroundColor: colors.dangerSoft },
+  menuTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
+  menuTitleDanger: { color: colors.danger },
+  menuDesc: { fontSize: 11, fontWeight: '600', color: colors.textFaint, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  menuDescDanger: { color: colors.dangerFaint },
+  divider: { height: 1, backgroundColor: colors.muted, marginHorizontal: 20 },
+  langBadge: { backgroundColor: colors.primarySoft, borderRadius: radius.sm, paddingHorizontal: 10, paddingVertical: 4 },
+  langBadgeText: { fontSize: 12, fontWeight: '700', color: colors.primary },
+  version: { textAlign: 'center', fontSize: 10, fontWeight: '700', color: colors.textGhost, textTransform: 'uppercase', letterSpacing: 2, paddingVertical: 8 },
 })
