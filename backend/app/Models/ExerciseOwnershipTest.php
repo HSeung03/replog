@@ -1,10 +1,7 @@
 <?php
 
-namespace Tests\Feature;
+namespace App\Models;
 
-use App\Models\Exercise;
-use App\Models\User;
-use App\Models\WorkoutLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
