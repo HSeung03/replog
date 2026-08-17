@@ -30,4 +30,16 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // 신체 스펙과 목표. 가입 직후에는 없다(null).
+    public function profile()
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    // 모델이 만들어 준 요약 / 식단 / 루틴
+    public function aiReports()
+    {
+        return $this->hasMany(AiReport::class);
+    }
 }

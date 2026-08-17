@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BodyRecordController;
 use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\WorkoutLogController;
 use App\Http\Controllers\WorkoutTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,10 @@ Route::middleware('throttle:auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
+
+    // 신체 스펙·목표 (요약/식단/루틴 생성의 입력)
+    Route::get('/profile',   [UserProfileController::class, 'show']);
+    Route::put('/profile',   [UserProfileController::class, 'update']);
 
     // 운동 종목
     Route::get('/exercises',               [ExerciseController::class, 'index']);

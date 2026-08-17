@@ -22,7 +22,12 @@ class WorkoutTemplateController extends Controller
         $payload = [];
 
         foreach (array_values($exercises) as $index => $item) {
-            $payload[$item['exercise_id']] = ['sort_order' => $index + 1];
+            $payload[$item['exercise_id']] = [
+                'sort_order'  => $index + 1,
+                // 수동으로 만든 템플릿은 처방 없이 종목만 담는다. 그때는 null로 남는다.
+                'target_sets' => $item['target_sets'] ?? null,
+                'target_reps' => $item['target_reps'] ?? null,
+            ];
         }
 
         return $payload;
@@ -45,6 +50,8 @@ class WorkoutTemplateController extends Controller
             'name'       => 'required|string|max:255',
             'exercises'  => 'array',
             'exercises.*.exercise_id' => ['required', Exercise::accessibleRule($request->user()->id)],
+            'exercises.*.target_sets' => 'nullable|integer|min:1|max:255',
+            'exercises.*.target_reps' => 'nullable|integer|min:1|max:1000',
         ]);
 
         // 템플릿만 만들어지고 종목은 비어 있는 상태로 남지 않도록 한 트랜잭션에 묶는다.
@@ -79,6 +86,8 @@ class WorkoutTemplateController extends Controller
             'name'       => 'sometimes|string|max:255',
             'exercises'  => 'array',
             'exercises.*.exercise_id' => ['required', Exercise::accessibleRule($request->user()->id)],
+            'exercises.*.target_sets' => 'nullable|integer|min:1|max:255',
+            'exercises.*.target_reps' => 'nullable|integer|min:1|max:1000',
         ]);
 
         // 이전에는 전체 삭제 후 루프로 재등록했다. 루프 중간에 예외가 나면
