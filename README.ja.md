@@ -198,11 +198,11 @@ replog/
 │   │   ├── Http/Controllers/ ドメインごとのコントローラー
 │   │   ├── Http/Resources/   レスポンス整形（内部カラムの露出防止）
 │   │   ├── Policies/         所有権チェック
-│   │   └── Models/           Eloquentモデル（リレーション定義）
+│   │   ├── Models/           Eloquentモデル（リレーション定義）
+│   │   └── **/*Test.php      テストは検証対象コードの隣に（Auth / 種目 / ログ / 権限 / レート制限）
 │   ├── database/
 │   │   ├── migrations/       テーブル定義
 │   │   └── seeders/          デフォルト種目32個
-│   ├── tests/Feature/        Auth / Exercise / WorkoutLog / 権限 / レート制限テスト
 │   └── Dockerfile            デプロイイメージ定義
 └── mobile/                   React Native + Expo
     └── src/

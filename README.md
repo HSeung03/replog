@@ -198,11 +198,11 @@ replog/
 │   │   ├── Http/Controllers/ 각 도메인별 컨트롤러
 │   │   ├── Http/Resources/   응답 직렬화 (내부 컬럼 노출 차단)
 │   │   ├── Policies/         소유권 검사
-│   │   └── Models/           Eloquent 모델 (관계 정의)
+│   │   ├── Models/           Eloquent 모델 (관계 정의)
+│   │   └── **/*Test.php      테스트는 검증 대상 코드 옆에 (Auth / 종목 / 일지 / 권한 / 레이트리밋)
 │   ├── database/
 │   │   ├── migrations/       테이블 정의
 │   │   └── seeders/          기본 운동 종목 32개
-│   ├── tests/Feature/        Auth / Exercise / WorkoutLog / 권한 / 레이트리밋 테스트
 │   └── Dockerfile            배포 이미지 정의
 └── mobile/                   React Native + Expo
     └── src/
