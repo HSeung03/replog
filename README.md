@@ -63,7 +63,8 @@ React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, 
 | Laravel Sanctum | 토큰 기반 인증 (Bearer Token) |
 | AWS EC2 | 서버 환경 직접 제어 가능한 프로덕션 배포 환경 |
 | Nginx + PHP-FPM 8.4 | 동시 요청 처리 성능, 프로덕션 표준 구성 |
-| GitHub Actions | master 브랜치 push 시 EC2 자동 배포 (CI/CD) |
+| Docker + Amazon ECR | 배포 단위를 이미지로 고정해 서버 상태와 무관하게 같은 결과 보장 |
+| GitHub Actions | master 브랜치 push 시 이미지 빌드 → ECR push → EC2 컨테이너 교체 (CI/CD) |
 
 ### Mobile
 | 기술 | 선택 이유 |
@@ -75,6 +76,9 @@ React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, 
 | React Navigation v7 | 스택 / 탭 네비게이션 |
 | AsyncStorage | 토큰 로컬 저장 |
 | axios | API 호출 및 인증 인터셉터 |
+| expo-sqlite | 오프라인에서도 기록할 수 있도록 로컬 DB에 먼저 저장 |
+| @react-native-community/netinfo | 온·오프라인 감지 후 동기화 큐 처리 |
+| i18next + react-i18next | 한국어 / 일본어 다국어 지원 |
 
 <br/>
 
@@ -84,10 +88,12 @@ React Native(Expo) 모바일 앱과 Laravel REST API 백엔드로 구성되며, 
 - **세트별 기록** — 운동 종목 / 세트 / 무게 / 횟수 개별 관리 및 수정/삭제
 - **운동 템플릿** — 자주 쓰는 루틴을 템플릿으로 저장하고 불러오기
 - **1RM 계산** — Brzycki 공식 기반 세트별 추정 1RM 인라인 표시
-- **신체 기록** — 몸무게 / 근육량 / 체지방률 날짜별 누적 기록
+- **오프라인 기록** — 로컬 SQLite에 먼저 쓰고, 온라인이 되면 동기화 큐를 순서대로 서버에 반영
+- **다국어** — 한국어 / 일본어 전환 (운동 종목 이름 포함)
 - **운동 종목 관리** — 기본 제공 32개 종목 + 커스텀 종목 추가/삭제
 - **구글 소셜 로그인** — 네이티브 Google Sign-In (Android)
 - **세션 만료 처리** — 401 응답 시 자동 로그아웃
+- **신체 기록** — 몸무게 / 근육량 / 체지방률 날짜별 누적 기록 (백엔드 API만 구현, 앱 화면은 미구현)
 
 <br/>
 
@@ -186,23 +192,31 @@ erDiagram
 
 ```
 replog/
+├── .github/workflows/        GitHub Actions (backend-ci / mobile-ci / deploy)
 ├── backend/                  Laravel 13 REST API
 │   ├── app/
 │   │   ├── Http/Controllers/ 각 도메인별 컨트롤러
-│   │   └── Models/           Eloquent 모델 (관계 정의)
+│   │   ├── Http/Resources/   응답 직렬화 (내부 컬럼 노출 차단)
+│   │   ├── Policies/         소유권 검사
+│   │   ├── Models/           Eloquent 모델 (관계 정의)
+│   │   └── **/*Test.php      테스트는 검증 대상 코드 옆에 (Auth / 종목 / 일지 / 권한 / 레이트리밋)
 │   ├── database/
 │   │   ├── migrations/       테이블 정의
 │   │   └── seeders/          기본 운동 종목 32개
-│   ├── tests/Feature/        Auth / Exercise / WorkoutLog 테스트
-│   └── .github/workflows/    GitHub Actions CI/CD 설정
+│   └── Dockerfile            배포 이미지 정의
 └── mobile/                   React Native + Expo
     └── src/
-        ├── api/              axios 기반 API 호출 함수
-        ├── components/       공통 컴포넌트
+        ├── api/              axios 기반 API 호출 함수, 쿼리 키
+        ├── components/       공통 컴포넌트 (버튼, 시트, 폼, 헤더 등)
+        ├── constants/        카테고리 등 공용 상수
         ├── contexts/         전역 인증 상태
+        ├── db/               로컬 SQLite와 동기화 큐
         ├── hooks/            커스텀 훅 (useLog 등)
+        ├── i18n/             한국어 / 일본어 리소스
         ├── navigation/       네비게이션 구성
-        └── screens/          화면별 컴포넌트
+        ├── screens/          화면별 컴포넌트
+        ├── theme/            색·간격·그림자 토큰
+        └── utils/            날짜, 1RM 등 순수 함수
 ```
 
 <br/>
@@ -215,19 +229,27 @@ replog/
 | POST | /api/login | 로그인 |
 | POST | /api/auth/google | 구글 소셜 로그인 |
 | POST | /api/logout | 로그아웃 |
+| GET | /api/me | 로그인 사용자 정보 |
 | GET | /api/exercises | 운동 종목 목록 |
 | POST | /api/exercises | 커스텀 종목 추가 |
 | DELETE | /api/exercises/:id | 종목 삭제 |
 | GET | /api/workout-logs/calendar | 월별 운동 날짜 |
 | GET | /api/workout-logs/:date | 날짜별 기록 조회 |
 | POST | /api/workout-logs | 일지 생성 |
+| PATCH | /api/workout-logs/:id | 일지 메모 수정 |
+| DELETE | /api/workout-logs/:id | 일지 삭제 |
 | POST | /api/workout-logs/:id/sets | 세트 추가 |
-| PUT | /api/workout-logs/:id/sets/:setId | 세트 수정 |
+| PATCH | /api/workout-logs/:id/sets/:setId | 세트 수정 |
 | DELETE | /api/workout-logs/:id/sets/:setId | 세트 삭제 |
 | GET | /api/templates | 템플릿 목록 |
 | POST | /api/templates | 템플릿 생성 |
+| GET | /api/templates/:id | 템플릿 상세 |
+| PATCH | /api/templates/:id | 템플릿 수정 |
+| DELETE | /api/templates/:id | 템플릿 삭제 |
 | GET | /api/body-records | 신체 기록 목록 |
 | POST | /api/body-records | 신체 기록 추가 |
+| PATCH | /api/body-records/:id | 신체 기록 수정 |
+| DELETE | /api/body-records/:id | 신체 기록 삭제 |
 
 <br/>
 
@@ -235,7 +257,7 @@ replog/
 
 ### 사전 요구사항
 - PHP 8.4+ / Composer
-- Node.js 18+
+- Node.js 20+
 - Docker (Laravel Sail 사용 시)
 
 ### Backend
@@ -265,5 +287,7 @@ npx expo start
 | 웹서버 | Nginx + PHP-FPM 8.4 |
 | SSL | Let's Encrypt (Certbot) |
 | 데이터베이스 | MySQL |
-| CI/CD | GitHub Actions (master push → SSH 자동 배포) |
+| 배포 이미지 | Docker (Amazon ECR) |
+| CI/CD | GitHub Actions (master push → 이미지 빌드/push → EC2 SSH 배포) |
+| 배포 안전장치 | 새 컨테이너 기동 확인 후 마이그레이션, 실패 시 이전 이미지로 롤백 |
 | Android APK | EAS Build (expo.dev) |

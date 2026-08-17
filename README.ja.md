@@ -10,8 +10,8 @@
 
 <table>
   <tr>
-    <td align="center"><b>カレンダー</b></td>
     <td align="center"><b>ログイン</b></td>
+    <td align="center"><b>カレンダー</b></td>
     <td align="center"><b>トレーニング記録</b></td>
   </tr>
   <tr>
@@ -63,7 +63,8 @@ React Native(Expo)モバイルアプリとLaravel REST APIバックエンドで�
 | Laravel Sanctum | トークンベース認証 (Bearer Token) |
 | AWS EC2 | サーバー環境を直接制御できるプロダクション環境 |
 | Nginx + PHP-FPM 8.4 | 同時リクエスト処理性能、プロダクション標準構成 |
-| GitHub Actions | masterブランチpush時にEC2へ自動デプロイ (CI/CD) |
+| Docker + Amazon ECR | デプロイ単位をイメージに固定し、サーバー状態に依存せず同じ結果を保証 |
+| GitHub Actions | masterブランチpush時にイメージビルド → ECR push → EC2コンテナ入れ替え (CI/CD) |
 
 ### Mobile
 | 技術 | 選定理由 |
@@ -75,6 +76,9 @@ React Native(Expo)モバイルアプリとLaravel REST APIバックエンドで�
 | React Navigation v7 | スタック / タブナビゲーション |
 | AsyncStorage | トークンのローカル保存 |
 | axios | API呼び出しおよび認証インターセプター |
+| expo-sqlite | オフラインでも記録できるようローカルDBに先に保存 |
+| @react-native-community/netinfo | オン・オフライン検知後に同期キューを処理 |
+| i18next + react-i18next | 韓国語 / 日本語の多言語対応 |
 
 <br/>
 
@@ -84,10 +88,12 @@ React Native(Expo)モバイルアプリとLaravel REST APIバックエンドで�
 - **セットごとの記録** — 種目 / セット / 重量 / 回数の個別管理・修正・削除
 - **トレーニングテンプレート** — よく使うルーティンをテンプレートとして保存・読み込み
 - **1RM計算** — Brzycki式によるセットごとの推定1RMをインライン表示
-- **身体記録** — 体重 / 筋肉量 / 体脂肪率の日付別累積記録
+- **オフライン記録** — ローカルSQLiteに先に書き込み、オンライン復帰時に同期キューを順番どおりサーバーへ反映
+- **多言語** — 韓国語 / 日本語の切り替え（種目名を含む）
 - **種目管理** — デフォルト32種目 + カスタム種目の追加・削除
 - **Googleソーシャルログイン** — ネイティブGoogle Sign-In (Android)
 - **セッション切れ処理** — 401レスポンス時に自動ログアウト
+- **身体記録** — 体重 / 筋肉量 / 体脂肪率の日付別累積記録（バックエンドAPIのみ実装、アプリ画面は未実装）
 
 <br/>
 
@@ -186,23 +192,31 @@ erDiagram
 
 ```
 replog/
+├── .github/workflows/        GitHub Actions (backend-ci / mobile-ci / deploy)
 ├── backend/                  Laravel 13 REST API
 │   ├── app/
 │   │   ├── Http/Controllers/ ドメインごとのコントローラー
-│   │   └── Models/           Eloquentモデル（リレーション定義）
+│   │   ├── Http/Resources/   レスポンス整形（内部カラムの露出防止）
+│   │   ├── Policies/         所有権チェック
+│   │   ├── Models/           Eloquentモデル（リレーション定義）
+│   │   └── **/*Test.php      テストは検証対象コードの隣に（Auth / 種目 / ログ / 権限 / レート制限）
 │   ├── database/
 │   │   ├── migrations/       テーブル定義
 │   │   └── seeders/          デフォルト種目32個
-│   ├── tests/Feature/        Auth / Exercise / WorkoutLog テスト
-│   └── .github/workflows/    GitHub Actions CI/CD設定
+│   └── Dockerfile            デプロイイメージ定義
 └── mobile/                   React Native + Expo
     └── src/
-        ├── api/              axiosベースのAPI呼び出し関数
-        ├── components/       共通コンポーネント
+        ├── api/              axiosベースのAPI呼び出し関数、クエリキー
+        ├── components/       共通コンポーネント（ボタン、シート、フォーム、ヘッダーなど）
+        ├── constants/        カテゴリなどの共通定数
         ├── contexts/         グローバル認証状態
+        ├── db/               ローカルSQLiteと同期キュー
         ├── hooks/            カスタムフック（useLogなど）
+        ├── i18n/             韓国語 / 日本語リソース
         ├── navigation/       ナビゲーション構成
-        └── screens/          画面別コンポーネント
+        ├── screens/          画面別コンポーネント
+        ├── theme/            色・余白・シャドウのトークン
+        └── utils/            日付、1RMなどの純粋関数
 ```
 
 <br/>
@@ -215,19 +229,27 @@ replog/
 | POST | /api/login | ログイン |
 | POST | /api/auth/google | Googleソーシャルログイン |
 | POST | /api/logout | ログアウト |
+| GET | /api/me | ログインユーザー情報 |
 | GET | /api/exercises | 種目一覧 |
 | POST | /api/exercises | カスタム種目追加 |
 | DELETE | /api/exercises/:id | 種目削除 |
 | GET | /api/workout-logs/calendar | 月別トレーニング日付 |
 | GET | /api/workout-logs/:date | 日付別記録照会 |
 | POST | /api/workout-logs | 記録作成 |
+| PATCH | /api/workout-logs/:id | 記録メモ修正 |
+| DELETE | /api/workout-logs/:id | 記録削除 |
 | POST | /api/workout-logs/:id/sets | セット追加 |
-| PUT | /api/workout-logs/:id/sets/:setId | セット修正 |
+| PATCH | /api/workout-logs/:id/sets/:setId | セット修正 |
 | DELETE | /api/workout-logs/:id/sets/:setId | セット削除 |
 | GET | /api/templates | テンプレート一覧 |
 | POST | /api/templates | テンプレート作成 |
+| GET | /api/templates/:id | テンプレート詳細 |
+| PATCH | /api/templates/:id | テンプレート修正 |
+| DELETE | /api/templates/:id | テンプレート削除 |
 | GET | /api/body-records | 身体記録一覧 |
 | POST | /api/body-records | 身体記録追加 |
+| PATCH | /api/body-records/:id | 身体記録修正 |
+| DELETE | /api/body-records/:id | 身体記録削除 |
 
 <br/>
 
@@ -235,7 +257,8 @@ replog/
 
 ### 事前要件
 - PHP 8.4+ / Composer
-- Node.js 18+
+- Node.js 20+
+- Docker (Laravel Sail 利用時)
 
 ### Backend
 ```bash
@@ -264,5 +287,7 @@ npx expo start
 | Webサーバー | Nginx + PHP-FPM 8.4 |
 | SSL | Let's Encrypt (Certbot) |
 | データベース | MySQL |
-| CI/CD | GitHub Actions (master push → SSH自動デプロイ) |
+| デプロイイメージ | Docker (Amazon ECR) |
+| CI/CD | GitHub Actions (master push → イメージビルド/push → EC2へSSHデプロイ) |
+| デプロイの安全装置 | 新コンテナの起動確認後にマイグレーション、失敗時は以前のイメージへロールバック |
 | Android APK | EAS Build (expo.dev) |
