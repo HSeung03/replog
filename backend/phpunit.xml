@@ -4,18 +4,24 @@
          bootstrap="vendor/autoload.php"
          colors="true"
 >
+    <!--
+        테스트는 검증 대상 코드 옆에 둔다(app/Services/WorkoutSummaryTest.php처럼).
+        따로 모아 두면 소스를 고칠 때 짝이 되는 테스트가 눈에 들어오지 않는다.
+        파일 이름이 *Test.php면 app/ 어디에 있든 잡힌다.
+    -->
     <testsuites>
-        <testsuite name="Unit">
-            <directory>tests/Unit</directory>
-        </testsuite>
         <testsuite name="Feature">
-            <directory>tests/Feature</directory>
+            <directory suffix="Test.php">app</directory>
         </testsuite>
     </testsuites>
     <source>
         <include>
             <directory>app</directory>
         </include>
+        <!-- 테스트 파일 자체는 커버리지 대상이 아니다. -->
+        <exclude>
+            <directory suffix="Test.php">app</directory>
+        </exclude>
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>

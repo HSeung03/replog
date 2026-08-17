@@ -1,0 +1,12 @@
+# 테스트가 app/ 안에 함께 있으므로(phpunit.xml 참고) 이미지에 담기지 않도록
+# 여기서 걸러낸다. --optimize-autoloader가 classmap에 등재하는 것도 함께 막는다.
+**/*Test.php
+tests/
+phpunit.xml
+
+.git
+.github
+node_modules
+vendor
+storage/logs/*
+.env
