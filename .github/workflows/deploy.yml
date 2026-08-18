@@ -16,7 +16,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ap-northeast-2
 
       - name: Login to Amazon ECR # ecr에 로그인함 ecr은 aws가 제공하는 이미지 저장손데 aws판이라고 생각하면 됨
         id: login-ecr
@@ -34,10 +34,10 @@ jobs:
       - name: Deploy to EC2 # ec2에 접속하려고 하는 것 script안의 명령어는 모두 ec2에서 동작
         uses: appleboy/ssh-action@v1.0.0 
         with:
-          # ec2 주소. 인스턴스를 중지하면 자동 할당 퍼블릭 IP가 반납되므로
-          # 켤 때마다 주소가 바뀐다. EC2_HOST secret을 넣어두면 그걸 쓰고,
-          # 없으면 기존 주소로 떨어진다(secret 없이도 배포가 깨지지 않게).
-          host: ${{ secrets.EC2_HOST || '98.81.210.162' }}
+          # ec2 주소. 서울(ap-northeast-2) 인스턴스에 Elastic IP를 붙여 두었으므로
+          # 인스턴스를 중지·재기동해도 주소가 바뀌지 않는다. EC2_HOST secret을
+          # 넣어두면 그걸 쓰고, 없으면 Elastic IP로 떨어진다.
+          host: ${{ secrets.EC2_HOST || '43.200.132.77' }}
           username: ubuntu # ec2에 접속하는 계정
           key: ${{ secrets.EC2_SSH_KEY }} # secrets에 저장해둔 ssh프라이빗 키 
           envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY # 환경변수로 ec2에게 넘김 나중에 이 키로 비밀번호를 꺼내와서 aws에 인증후 ecr에 접속하는거임
@@ -51,10 +51,10 @@ jobs:
           script: |
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-            export AWS_DEFAULT_REGION=us-east-1
-            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            export AWS_DEFAULT_REGION=ap-northeast-2
+            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
             set -e
-            REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+            REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
             IMAGE=$REGISTRY/replog-backend:latest
 
             # 지금 돌고 있는 이미지를 기억해둔다. 새 이미지가 안 뜨면 이걸로 되돌린다.
